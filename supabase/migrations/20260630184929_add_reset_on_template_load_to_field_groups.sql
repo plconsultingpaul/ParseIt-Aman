@@ -1,2 +1,0 @@
-ALTER TABLE order_entry_template_field_groups
-ADD COLUMN reset_on_template_load BOOLEAN NOT NULL DEFAULT FALSE;

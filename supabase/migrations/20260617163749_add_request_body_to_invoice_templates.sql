@@ -1,1 +1,0 @@
-ALTER TABLE invoice_templates ADD COLUMN IF NOT EXISTS request_body text;

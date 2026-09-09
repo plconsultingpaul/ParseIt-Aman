@@ -1,1 +1,0 @@
-ALTER TABLE client_addresses ADD COLUMN client_ref_id varchar(20) DEFAULT '';

@@ -1,2 +1,0 @@
-ALTER TABLE order_entry_template_document_types
-ADD COLUMN allowed_file_types TEXT;

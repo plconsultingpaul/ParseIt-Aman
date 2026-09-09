@@ -1,1 +1,0 @@
-ALTER TABLE order_entry_templates ADD COLUMN IF NOT EXISTS hide_pdf_autofill boolean DEFAULT false;
