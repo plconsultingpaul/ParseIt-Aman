@@ -1,1 +1,0 @@
-ALTER TABLE order_entry_template_fields ADD COLUMN IF NOT EXISTS use_client_id_default boolean DEFAULT false;
