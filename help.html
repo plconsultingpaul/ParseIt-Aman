@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ParseIt Help Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 min-h-screen">
+    <div class="flex h-screen">
+      <!-- Sidebar -->
+      <div class="w-80 bg-white/90 backdrop-blur-sm border-r border-purple-100 flex flex-col">
+        <!-- Header -->
+        <div class="p-6 border-b border-purple-100 bg-gradient-to-r from-purple-600 to-indigo-600">
+          <div class="flex items-center space-x-3">
+            <div class="bg-white/20 p-2 rounded-lg">
+              <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-white">ParseIt Help</h1>
+              <p class="text-purple-100 text-sm">Complete User Guide</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto p-4">
+          <div class="space-y-2">
+            <a href="#getting-started" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Getting Started</div>
+              <div class="text-sm text-gray-500">What is ParseIt and quick start</div>
+            </a>
+            <a href="#upload-modes" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Upload Modes</div>
+              <div class="text-sm text-gray-500">Manual vs AI auto-detection</div>
+            </a>
+            <a href="#extraction-process" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Extraction Process</div>
+              <div class="text-sm text-gray-500">How XML and JSON processing works</div>
+            </a>
+            <a href="#settings-overview" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Settings Overview</div>
+              <div class="text-sm text-gray-500">Configuration options</div>
+            </a>
+            <a href="#email-monitoring" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Email Monitoring</div>
+              <div class="text-sm text-gray-500">Automated email processing</div>
+            </a>
+            <a href="#extraction-types" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Extraction Types</div>
+              <div class="text-sm text-gray-500">Creating and managing templates</div>
+            </a>
+            <a href="#field-mappings" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Field Mappings</div>
+              <div class="text-sm text-gray-500">JSON field mapping options</div>
+            </a>
+            <a href="#workflows" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Workflows</div>
+              <div class="text-sm text-gray-500">Multi-step processing</div>
+            </a>
+            <a href="#user-permissions" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">User Management</div>
+              <div class="text-sm text-gray-500">Permissions and access control</div>
+            </a>
+            <a href="#troubleshooting" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Troubleshooting</div>
+              <div class="text-sm text-gray-500">Common issues and solutions</div>
+            </a>
+            <a href="#best-practices" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Best Practices</div>
+              <div class="text-sm text-gray-500">Tips for optimal usage</div>
+            </a>
+            <a href="#tools-features" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Tools & Features</div>
+              <div class="text-sm text-gray-500">Interactive mapping and logs</div>
+            </a>
+            <a href="#api-keys" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">API Configuration</div>
+              <div class="text-sm text-gray-500">Keys and endpoint setup</div>
+            </a>
+            <a href="#support" class="block p-3 rounded-lg hover:bg-purple-50 text-gray-700 hover:text-purple-700 transition-colors duration-200">
+              <div class="font-medium">Support & Resources</div>
+              <div class="text-sm text-gray-500">Getting help and tips</div>
+            </a>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="max-w-4xl mx-auto p-8">
+          <!-- Page Header -->
+          <div class="text-center mb-12">
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+              <svg class="h-10 w-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+            </div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">ParseIt Help Center</h1>
+            <p class="text-xl text-gray-600">Complete guide to using ParseIt for PDF data extraction</p>
+          </div>
+
+          <!-- Getting Started -->
+          <section id="getting-started" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-green-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Getting Started</h2>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+              <h3 class="font-semibold text-green-800 mb-3">What is ParseIt?</h3>
+              <p class="text-green-700 mb-4">
+                ParseIt is an AI-powered PDF data extraction application that converts unstructured PDF documents into structured XML or JSON data. 
+                It uses Google's Gemini AI to intelligently extract information from your PDFs based on customizable templates and instructions.
+              </p>
+              <h3 class="font-semibold text-green-800 mb-3">Quick Start (3 Steps)</h3>
+              <ol class="text-green-700 space-y-2 list-decimal list-inside">
+                <li><strong>Upload a PDF:</strong> Click "Upload & Extract" and select your PDF file</li>
+                <li><strong>Choose Extraction Type:</strong> Select from pre-configured templates or use AI auto-detection</li>
+                <li><strong>Extract & Process:</strong> Click "Extract & Send to API" or "Extract & Upload via SFTP" to process your document</li>
+              </ol>
+            </div>
+          </section>
+
+          <!-- Upload Modes -->
+          <section id="upload-modes" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-blue-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Upload Modes</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="font-semibold text-blue-800 mb-3 flex items-center space-x-2">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <span>Manual Selection</span>
+                </h3>
+                <ul class="text-blue-700 space-y-2">
+                  <li>• You manually choose which extraction type to use</li>
+                  <li>• Best when you know exactly what type of document you're processing</li>
+                  <li>• Gives you full control over the extraction process</li>
+                  <li>• Recommended for consistent document types</li>
+                </ul>
+              </div>
+              <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                <h3 class="font-semibold text-purple-800 mb-3 flex items-center space-x-2">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                  <span>AI Auto-Detect</span>
+                </h3>
+                <ul class="text-purple-700 space-y-2">
+                  <li>• AI analyzes your PDF and suggests the best extraction type</li>
+                  <li>• Perfect for mixed document types or unknown formats</li>
+                  <li>• Shows confidence level and reasoning for the suggestion</li>
+                  <li>• You can still override the AI's choice if needed</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Extraction Process -->
+          <section id="extraction-process" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-purple-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Extraction Process</h2>
+            </div>
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="font-semibold text-purple-800 mb-3">For XML Types:</h3>
+                  <ol class="text-purple-700 space-y-2 list-decimal list-inside">
+                    <li>AI extracts data according to your instructions</li>
+                    <li>Data is formatted as XML using your template</li>
+                    <li>ParseIt ID is automatically assigned</li>
+                    <li>Both XML and PDF files are uploaded to SFTP server</li>
+                    <li>Multi-page PDFs are split into individual files</li>
+                  </ol>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-purple-800 mb-3">For JSON Types:</h3>
+                  <ol class="text-purple-700 space-y-2 list-decimal list-inside">
+                    <li>AI extracts data according to your instructions</li>
+                    <li>Data is formatted as JSON using your template</li>
+                    <li>ParseIt ID is automatically assigned</li>
+                    <li>JSON data is sent to your configured API endpoint</li>
+                    <li>PDF is also uploaded to SFTP for backup</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Settings Overview -->
+          <section id="settings-overview" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-gray-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Settings Overview</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <div class="flex items-center space-x-3 mb-3">
+                  <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  <h3 class="font-semibold text-gray-900">Extraction Types</h3>
+                </div>
+                <p class="text-gray-600 text-sm">
+                  Create and manage templates for different document types. Define extraction instructions, output formats, and field mappings.
+                </p>
+              </div>
+              
+              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <div class="flex items-center space-x-3 mb-3">
+                  <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h6l2 2h6a2 2 0 012 2v4a2 2 0 01-2 2H5z"></path>
+                  </svg>
+                  <h3 class="font-semibold text-gray-900">SFTP Settings</h3>
+                </div>
+                <p class="text-gray-600 text-sm">
+                  Configure your SFTP server connection for uploading extracted XML files and PDF documents.
+                </p>
+              </div>
+              
+              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <div class="flex items-center space-x-3 mb-3">
+                  <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                  </svg>
+                  <h3 class="font-semibold text-gray-900">API Settings</h3>
+                </div>
+                <p class="text-gray-600 text-sm">
+                  Set up API endpoints for JSON data transmission and configure your Google Gemini API key for AI processing.
+                </p>
+              </div>
+              
+              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <div class="flex items-center space-x-3 mb-3">
+                  <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                  </svg>
+                  <h3 class="font-semibold text-gray-900">Email Monitoring</h3>
+                </div>
+                <p class="text-gray-600 text-sm">
+                  Configure Office 365 or Gmail monitoring to automatically process PDF attachments from incoming emails.
+                </p>
+              </div>
+              
+              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <div class="flex items-center space-x-3 mb-3">
+                  <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                  </svg>
+                  <h3 class="font-semibold text-gray-900">Email Rules</h3>
+                </div>
+                <p class="text-gray-600 text-sm">
+                  Create rules to automatically match incoming emails to specific extraction types based on sender and subject patterns.
+                </p>
+              </div>
+              
+              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <div class="flex items-center space-x-3 mb-3">
+                  <svg class="h-6 w-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                  </svg>
+                  <h3 class="font-semibold text-gray-900">User Management</h3>
+                </div>
+                <p class="text-gray-600 text-sm">
+                  Manage user accounts, permissions, and access levels. Control who can access different parts of the application.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Continue with more sections... -->
+          <!-- For brevity, I'll include key sections. The full implementation would include all sections from the original HelpPage -->
+
+          <!-- Email Actions in Workflows -->
+          <section id="email-actions" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-pink-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Email Actions in Workflows</h2>
+            </div>
+            <div class="space-y-6">
+              <div class="bg-pink-50 border border-pink-200 rounded-lg p-6">
+                <h3 class="font-semibold text-pink-800 mb-4">What are Email Actions?</h3>
+                <p class="text-pink-700 mb-4">
+                  Email Actions are workflow steps that automatically send emails with extracted data and PDF attachments. 
+                  They're perfect for notifying customers, suppliers, or internal teams when documents are processed.
+                </p>
+                
+                <h4 class="font-semibold text-pink-800 mb-3">Common Use Cases:</h4>
+                <ul class="text-pink-700 space-y-2">
+                  <li>• <strong>Customer Notifications:</strong> Send invoices or receipts to customers automatically</li>
+                  <li>• <strong>Supplier Communications:</strong> Forward purchase orders or delivery confirmations</li>
+                  <li>• <strong>Internal Alerts:</strong> Notify accounting teams when new invoices are processed</li>
+                  <li>• <strong>Document Delivery:</strong> Send renamed PDFs with proper filenames to recipients</li>
+                </ul>
+              </div>
+              
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="font-semibold text-blue-800 mb-4">Setting Up Email Actions</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 class="font-medium text-blue-800 mb-3">Prerequisites:</h4>
+                    <ol class="text-blue-700 space-y-2 list-decimal list-inside">
+                      <li>Configure Email Monitoring in Settings (Office 365 or Gmail)</li>
+                      <li>Create a workflow in Settings → Type Setup → Workflows</li>
+                      <li>Add an Email Action step to your workflow</li>
+                      <li>Assign the workflow to an extraction type</li>
+                    </ol>
+                  </div>
+                  <div>
+                    <h4 class="font-medium text-blue-800 mb-3">Configuration Options:</h4>
+                    <ul class="text-blue-700 space-y-2">
+                      <li>• <strong>To/From:</strong> Email addresses (supports dynamic data)</li>
+                      <li>• <strong>Subject/Body:</strong> Email content with placeholders</li>
+                      <li>• <strong>Attachments:</strong> Include original or renamed PDF</li>
+                      <li>• <strong>Templates:</strong> Use {{fieldName}} for extracted data</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h3 class="font-semibold text-green-800 mb-4">Template Variables in Emails</h3>
+                <p class="text-green-700 mb-4">
+                  Use template variables to insert extracted data into your emails. Simply wrap field names in double curly braces.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 class="font-medium text-green-800 mb-3">Example Email Template:</h4>
+                    <div class="bg-white border border-green-300 rounded-lg p-4">
+                      <p class="text-sm text-green-800 mb-2"><strong>To:</strong> {{customerEmail}}</p>
+                      <p class="text-sm text-green-800 mb-2"><strong>Subject:</strong> Invoice {{invoiceNumber}} - Payment Due</p>
+                      <div class="text-sm text-green-800">
+                        <strong>Body:</strong><br>
+                        Dear {{customerName}},<br><br>
+                        Your invoice {{invoiceNumber}} for ${{totalAmount}} is now available.<br><br>
+                        Payment is due by {{dueDate}}.<br><br>
+                        Please find the attached PDF for your records.<br><br>
+                        Best regards,<br>
+                        Accounts Receivable
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 class="font-medium text-green-800 mb-3">Available Variables:</h4>
+                    <ul class="text-green-700 space-y-1 text-sm">
+                      <li>• Any field extracted from your PDF</li>
+                      <li>• Customer information (name, email, address)</li>
+                      <li>• Invoice details (number, amount, date)</li>
+                      <li>• Order information (PO number, items)</li>
+                      <li>• Custom fields from your extraction templates</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                <h3 class="font-semibold text-amber-800 mb-4">Email Workflow Examples</h3>
+                
+                <div class="space-y-4">
+                  <div class="bg-white border border-amber-300 rounded-lg p-4">
+                    <h4 class="font-medium text-amber-800 mb-3">Example 1: Invoice Processing</h4>
+                    <ol class="text-amber-700 space-y-1 list-decimal list-inside text-sm">
+                      <li><strong>Step 1:</strong> Extract invoice data (customer email, invoice number, amount)</li>
+                      <li><strong>Step 2:</strong> Send to accounting API for processing</li>
+                      <li><strong>Step 3:</strong> Rename PDF to "Invoice_{{invoiceNumber}}.pdf"</li>
+                      <li><strong>Step 4:</strong> Email renamed PDF to customer at {{customerEmail}}</li>
+                    </ol>
+                  </div>
+                  
+                  <div class="bg-white border border-amber-300 rounded-lg p-4">
+                    <h4 class="font-medium text-amber-800 mb-3">Example 2: Purchase Order Workflow</h4>
+                    <ol class="text-amber-700 space-y-1 list-decimal list-inside text-sm">
+                      <li><strong>Step 1:</strong> Extract PO data (supplier email, PO number, items)</li>
+                      <li><strong>Step 2:</strong> Check if total amount > $1000 (conditional step)</li>
+                      <li><strong>Step 3a:</strong> If > $1000: Email manager for approval</li>
+                      <li><strong>Step 3b:</strong> If ≤ $1000: Email supplier with PO confirmation</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <!-- Email Monitoring Details -->
+          <section id="email-monitoring" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-indigo-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Email Monitoring</h2>
+            </div>
+            <div class="space-y-6">
+              <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                <h3 class="font-semibold text-indigo-800 mb-4">How Email Monitoring Works</h3>
+                <ol class="text-indigo-700 space-y-3 list-decimal list-inside">
+                  <li><strong>Email Scanning:</strong> ParseIt periodically checks your configured email account for new messages with PDF attachments</li>
+                  <li><strong>Rule Matching:</strong> Each email is matched against your processing rules based on sender and subject patterns</li>
+                  <li><strong>AI Detection (Optional):</strong> If enabled, AI analyzes the PDF to automatically detect the best extraction type</li>
+                  <li><strong>Data Extraction:</strong> The PDF is processed using the matched or detected extraction type</li>
+                  <li><strong>File Upload:</strong> Extracted data and PDF files are uploaded to your SFTP server</li>
+                  <li><strong>Email Archiving:</strong> Processed emails are moved to archive to prevent reprocessing</li>
+                </ol>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h3 class="font-semibold text-blue-800 mb-3">Office 365 Setup</h3>
+                  <ul class="text-blue-700 space-y-2">
+                    <li>• Register app in Azure AD</li>
+                    <li>• Grant Mail.Read permissions</li>
+                    <li>• Create client secret</li>
+                    <li>• Configure tenant ID and client credentials</li>
+                  </ul>
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                  <h3 class="font-semibold text-green-800 mb-3">Gmail Setup</h3>
+                  <ul class="text-green-700 space-y-2">
+                    <li>• Create Google Cloud project</li>
+                    <li>• Enable Gmail API</li>
+                    <li>• Configure OAuth consent screen</li>
+                    <li>• Generate refresh token</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Extraction Types -->
+          <section id="extraction-types" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-purple-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Extraction Types</h2>
+            </div>
+            <div class="space-y-6">
+              <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                <h3 class="font-semibold text-purple-800 mb-4">Creating Extraction Types</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 class="font-medium text-purple-800 mb-3">Required Fields:</h4>
+                    <ul class="text-purple-700 space-y-2">
+                      <li>• <strong>Name:</strong> Descriptive name for the extraction type</li>
+                      <li>• <strong>Default Instructions:</strong> Tell the AI what data to extract</li>
+                      <li>• <strong>Template:</strong> XML or JSON structure for output format</li>
+                      <li>• <strong>Filename:</strong> Base name for generated files</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 class="font-medium text-purple-800 mb-3">Optional Features:</h4>
+                    <ul class="text-purple-700 space-y-2">
+                      <li>• <strong>Field Mappings:</strong> Map specific PDF coordinates to JSON fields</li>
+                      <li>• <strong>ParseIt ID Mapping:</strong> Automatically inject unique IDs</li>
+                      <li>• <strong>Auto-Detection:</strong> Instructions for AI to identify document type</li>
+                      <li>• <strong>Workflow Assignment:</strong> Link to multi-step processing workflows</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                <h3 class="font-semibold text-amber-800 mb-3">XML vs JSON Formats</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 class="font-medium text-amber-800 mb-2">XML Format:</h4>
+                    <ul class="text-amber-700 space-y-2">
+                      <li>• Files uploaded to SFTP server</li>
+                      <li>• Use {{PARSEIT_ID_PLACEHOLDER}} in templates</li>
+                      <li>• Best for legacy systems</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 class="font-medium text-amber-800 mb-2">JSON Format:</h4>
+                    <ul class="text-amber-700 space-y-2">
+                      <li>• Data sent to API endpoints</li>
+                      <li>• Advanced field mapping capabilities</li>
+                      <li>• Modern REST API integration</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Field Mappings -->
+          <section id="field-mappings" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-orange-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Field Mappings (JSON Only)</h2>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-6">
+              <p class="text-orange-700 mb-6 text-lg">
+                Field mappings allow you to precisely control how data is extracted and formatted for JSON extraction types.
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white border border-orange-300 rounded-lg p-6">
+                  <h3 class="font-semibold text-orange-800 mb-3">AI Type</h3>
+                  <p class="text-orange-700">
+                    Let the AI determine what to extract based on your description. Most flexible option.
+                  </p>
+                </div>
+                <div class="bg-white border border-blue-300 rounded-lg p-6">
+                  <h3 class="font-semibold text-blue-800 mb-3">Mapped Type</h3>
+                  <p class="text-blue-700">
+                    Extract data from specific PDF coordinates. Use the Mapping tool to get precise coordinates.
+                  </p>
+                </div>
+                <div class="bg-white border border-green-300 rounded-lg p-6">
+                  <h3 class="font-semibold text-green-800 mb-3">Hardcoded Type</h3>
+                  <p class="text-green-700">
+                    Always use the same fixed value. Perfect for constants like company codes or status flags.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Workflows -->
+          <section id="workflows" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-teal-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Workflows</h2>
+            </div>
+            <div class="bg-teal-50 border border-teal-200 rounded-lg p-6">
+              <p class="text-teal-700 mb-6 text-lg">
+                Workflows allow you to create multi-step processes that execute after data extraction. Perfect for complex business logic.
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white border border-teal-300 rounded-lg p-6">
+                  <h3 class="font-semibold text-teal-800 mb-3">API Call Steps</h3>
+                  <p class="text-teal-700">
+                    Send extracted data to external APIs, update records, or trigger other systems.
+                  </p>
+                </div>
+                <div class="bg-white border border-teal-300 rounded-lg p-6">
+                  <h3 class="font-semibold text-teal-800 mb-3">Conditional Checks</h3>
+                  <p class="text-teal-700">
+                    Branch workflow execution based on data values or conditions in the extracted content.
+                  </p>
+                </div>
+                <div class="bg-white border border-teal-300 rounded-lg p-6">
+                  <h3 class="font-semibold text-teal-800 mb-3">Data Transforms</h3>
+                  <p class="text-teal-700">
+                    Modify, copy, or restructure extracted data before sending to subsequent steps.
+                  </p>
+                </div>
+                <div class="bg-white border border-teal-300 rounded-lg p-4">
+                  <h4 class="font-semibold text-teal-800 mb-2">Email Actions</h4>
+                  <p class="text-teal-700 text-sm">
+                    Send automated emails with extracted data and PDF attachments to customers or stakeholders.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- User Permissions -->
+          <section id="user-permissions" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-pink-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">User Management & Permissions</h2>
+            </div>
+            <div class="bg-pink-50 border border-pink-200 rounded-lg p-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="font-semibold text-pink-800 mb-4">User Types:</h3>
+                  <ul class="text-pink-700 space-y-2">
+                    <li>• <strong>Administrator:</strong> Full access to all settings and features</li>
+                    <li>• <strong>Regular User:</strong> Access only to extraction features by default</li>
+                    <li>• <strong>Custom Permissions:</strong> Granular control over specific settings sections</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-pink-800 mb-4">Permission Categories:</h3>
+                  <ul class="text-pink-700 space-y-2">
+                    <li>• Extraction Types, SFTP, API Settings</li>
+                    <li>• Email Monitoring, Rules, Processed Emails</li>
+                    <li>• Extraction Logs, User Management</li>
+                    <li>• Workflow Management</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Troubleshooting -->
+          <section id="troubleshooting" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-red-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Troubleshooting</h2>
+            </div>
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+              <h3 class="font-semibold text-red-800 mb-4">Common Issues & Solutions</h3>
+              <div class="space-y-6">
+                <div>
+                  <h4 class="font-medium text-red-800 mb-2">AI Extraction Fails:</h4>
+                  <ul class="text-red-700 space-y-2 ml-4">
+                    <li>• Check that your Google Gemini API key is configured in API Settings</li>
+                    <li>• Ensure your extraction instructions are clear and specific</li>
+                    <li>• Verify the PDF is not corrupted or password-protected</li>
+                    <li>• Try simplifying your extraction template</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="font-medium text-red-800 mb-2">SFTP Upload Fails:</h4>
+                  <ul class="text-red-700 space-y-2 ml-4">
+                    <li>• Test your SFTP connection in SFTP Settings</li>
+                    <li>• Verify server credentials and paths are correct</li>
+                    <li>• Check that the remote directories exist and are writable</li>
+                    <li>• Ensure firewall allows connections on the specified port</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="font-medium text-red-800 mb-2">API Calls Fail:</h4>
+                  <ul class="text-red-700 space-y-2 ml-4">
+                    <li>• Test your API connection using the "Test TruckMate API" button</li>
+                    <li>• Verify the API endpoint URL and authentication token</li>
+                    <li>• Check that your JSON template matches the API's expected format</li>
+                    <li>• Review API error details in the extraction logs</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 class="font-medium text-red-800 mb-2">Email Monitoring Issues:</h4>
+                  <ul class="text-red-700 space-y-2 ml-4">
+                    <li>• Test your email connection before enabling monitoring</li>
+                    <li>• Ensure your app has proper permissions (Mail.Read for Office 365)</li>
+                    <li>• Check that processing rules are enabled and properly configured</li>
+                    <li>• Verify the monitored email address is correct</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Best Practices -->
+          <section id="best-practices" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-green-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Best Practices</h2>
+            </div>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="font-semibold text-green-800 mb-4">Extraction Instructions:</h3>
+                  <ul class="text-green-700 space-y-2">
+                    <li>• Be specific about what data to extract</li>
+                    <li>• Mention field locations when possible</li>
+                    <li>• Include data format requirements (dates, numbers)</li>
+                    <li>• Test with sample PDFs before deploying</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-green-800 mb-4">Template Design:</h3>
+                  <ul class="text-green-700 space-y-2">
+                    <li>• Keep templates simple and focused</li>
+                    <li>• Use consistent field naming conventions</li>
+                    <li>• Include all required fields for your downstream systems</li>
+                    <li>• Test JSON syntax before saving</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="mt-6">
+                <h3 class="font-semibold text-green-800 mb-4">Security & Performance:</h3>
+                <ul class="text-green-700 space-y-2">
+                  <li>• Use strong passwords for SFTP and API authentication</li>
+                  <li>• Regularly review extraction logs for errors or issues</li>
+                  <li>• Set appropriate polling intervals for email monitoring (5-15 minutes recommended)</li>
+                  <li>• Monitor API rate limits and usage</li>
+                  <li>• Grant users only the permissions they need</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Tools & Features -->
+          <section id="tools-features" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-blue-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Tools & Features</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="font-semibold text-blue-800 mb-3">Interactive PDF Mapping</h3>
+                <p class="text-blue-700 mb-4">
+                  Use the Mapping tool to visually select fields on your PDF and get exact coordinates for field mappings.
+                </p>
+                <ul class="text-blue-700 space-y-2">
+                  <li>• Click and drag to select field areas</li>
+                  <li>• Label each selection for easy identification</li>
+                  <li>• Copy coordinates for use in extraction instructions</li>
+                </ul>
+              </div>
+              <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                <h3 class="font-semibold text-indigo-800 mb-3">Extraction Logs</h3>
+                <p class="text-indigo-700 mb-4">
+                  Monitor all extraction activities, view success/failure rates, and troubleshoot issues.
+                </p>
+                <ul class="text-indigo-700 space-y-2">
+                  <li>• Filter by status, user, type, or date range</li>
+                  <li>• View extracted data and API responses</li>
+                  <li>• Copy data for testing or debugging</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- API Keys & Configuration -->
+          <section id="api-keys" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-yellow-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">API Keys & Configuration</h2>
+            </div>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+              <div class="space-y-6">
+                <div>
+                  <h3 class="font-semibold text-yellow-800 mb-3">Google Gemini API Key</h3>
+                  <p class="text-yellow-700 mb-3">
+                    Required for AI-powered PDF data extraction. Get your key from Google AI Studio.
+                  </p>
+                  <a 
+                    href="https://makersuite.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="text-yellow-800 hover:text-yellow-900 underline font-medium"
+                  >
+                    → Get Google Gemini API Key
+                  </a>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-yellow-800 mb-3">API Endpoint Configuration</h3>
+                  <p class="text-yellow-700">
+                    For JSON extraction types, configure your API base URL and authentication token. 
+                    The system will combine this with the JSON Path from each extraction type to form the complete endpoint URL.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Support -->
+          <section id="support" class="mb-12">
+            <div class="flex items-center space-x-3 mb-6">
+              <div class="bg-gray-100 p-3 rounded-lg">
+                <svg class="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-gray-900">Support & Resources</h2>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 class="font-semibold text-gray-800 mb-4">Getting Help:</h3>
+                  <ul class="text-gray-700 space-y-2">
+                    <li>• Check the Extraction Logs for detailed error messages</li>
+                    <li>• Use the test buttons in settings to verify configurations</li>
+                    <li>• Start with simple extraction types before creating complex ones</li>
+                    <li>• Review the AI's extracted data before sending to production systems</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-800 mb-4">Tips for Success:</h3>
+                  <ul class="text-gray-700 space-y-2">
+                    <li>• Use clear, descriptive names for extraction types</li>
+                    <li>• Test extraction types with various PDF samples</li>
+                    <li>• Keep extraction instructions concise but detailed</li>
+                    <li>• Regularly backup your extraction type configurations</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Smooth scrolling for navigation links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+
+      // Highlight active section in navigation
+      const observerOptions = {
+        root: null,
+        rootMargin: '-20% 0px -70% 0px',
+        threshold: 0
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const navLink = document.querySelector(`a[href="#${entry.target.id}"]`);
+          if (entry.isIntersecting) {
+            // Remove active class from all nav links
+            document.querySelectorAll('nav a').forEach(link => {
+              link.classList.remove('bg-purple-100', 'text-purple-700');
+              link.classList.add('text-gray-700');
+            });
+            // Add active class to current nav link
+            if (navLink) {
+              navLink.classList.add('bg-purple-100', 'text-purple-700');
+              navLink.classList.remove('text-gray-700');
+            }
+          }
+        });
+      }, observerOptions);
+
+      // Observe all sections
+      document.querySelectorAll('section[id]').forEach(section => {
+        observer.observe(section);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2 @@
+ALTER TABLE order_entry_template_fields
+ADD COLUMN exclusion_groups JSONB;

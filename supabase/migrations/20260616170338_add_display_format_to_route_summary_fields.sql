@@ -1,0 +1,2 @@
+ALTER TABLE track_trace_route_summary_fields
+ADD COLUMN display_format text DEFAULT NULL;

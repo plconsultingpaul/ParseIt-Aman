@@ -1,0 +1,20 @@
+[functions.storage-manager]
+verify_jwt = true
+
+[functions.imaging-ingest]
+verify_jwt = false
+
+[functions.manage-auth-user]
+verify_jwt = true
+
+[functions.document-type-rule-runner]
+verify_jwt = false
+
+[functions.json-workflow-processor-v2]
+verify_jwt = false
+
+[functions.transform-workflow-processor-v2]
+verify_jwt = false
+
+[functions.imaging-proxy]
+verify_jwt = true

@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "ssh2-sftp-client": "npm:ssh2-sftp-client@11.0.0"
+  }
+}

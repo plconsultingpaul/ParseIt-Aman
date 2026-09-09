@@ -1,0 +1,1 @@
+ALTER TABLE client_addresses ADD COLUMN postal_code varchar(10) DEFAULT '';

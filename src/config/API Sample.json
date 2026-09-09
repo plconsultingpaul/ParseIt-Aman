@@ -1,0 +1,2295 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "TruckMate REST API",
+        "description": "The TruckMate REST APIs are a comprehensive set of RESTful services, allowing you to seamlessly integrate with major TruckMate product areas. The TruckMate REST APIs allow developers to integrate the TruckMate product with custom or 3rd party applications, automate tasks, and much more.\n\nBusiness use cases of the TruckMate REST APIs include:\n\n\n- Internal systems: Use the APIs to share data and streamline internal business processes.\n- External data sharing: In addition to internal networking, the APIs allow sharing TruckMate data with third party systems to connect and share information.\n- App integrations: Access TruckMate data in real time.\n- Embedded content: Request data from the TruckMate REST APIs to embed pieces of content onto your corporate site.\n\nThe endpoints and methods available are dependent on the license keys and authorization methods used. Use the following documentation to determine how to interact with the various available components.\n\n[Download latest released OpenAPI](https://truckmatecloudhub.dev.trimble-transportation.com/tm/openapi.json \"download\")\n\n\n This documentation is based on the most currently released version of TruckMate. Documentation for previous versions can be accessed by navigating to the openapi.json endpoint for any given API (the service must be set up and running). For example: http://DOMAIN/openapi.json\n\n---\n\n© 2022, Trimble Inc. All rights reserved. Unauthorized copying prohibited. Software functions, including our APIs and their specification, are subject to change without notice. Information contained herein is Trimble Confidential Information, used under license.\n\n---\n\n",
+        "version": "1",
+        "x-tm-release": "24.2.43.3"
+    },
+    "tags": [
+        {
+            "name": "Appointments",
+            "description": "The Appointments API allows e-commerce partners to select a delivery appointment for orders not yet created in TruckMate. The list of available appointment windows can be constrained to be not earlier than the Earliest Delivery Date provided by TruckMate's Transit Time API, to ensure that delivery appointments are feasible according to service standards."
+        },
+        {
+            "name": "Cloud Events",
+            "description": "Cloud Events allow submitting event data in common formats to provide interoperability across services."
+        },
+        {
+            "name": "Documents",
+            "description": "The Documents API allows for public viewing of specific imaging documents through a URL linked with a time sensitive token.\nSynergize by Microdea is currently the only Document Management System supported by the TruckMate Documents API. The Synergize SOAP API is used to retrieve documents from the configured repository.\nImaging document types are configured in the Imaging section of the TruckMate Codes Maintenance program (CODES.EXE). To enable a configured document type to be viewable via the API ART.EXE must be set as a Accessible Program."
+        },
+        {
+            "name": "Login",
+            "description": "The login authentication endpoints are used to generate a JWT (JSON Web Token) to be used as the authorization bearer token for subsequent API calls. Web users and their login credentials are configured either through the Profiles > TruckMate Customer and Vendor Profiles application  > TM4Web Configuration tab. TM4Web Access Group configuration options are setup in the TruckMate for Web > Web Admin application."
+        },
+        {
+            "name": "Order Customs",
+            "description": "The TruckMate Order Customs API allows access to retrieve, create and update TruckMate Order Customs information. Customs Information for an order can be viewed in the TruckMate Customer Service application > Customs tab."
+        },
+        {
+            "name": "Orders",
+            "description": "The TruckMate Orders API allows access to TruckMate orders, rate quotes and pickup requests.\n\nOrders refers to the freight bills created and managed by TruckMate for dispatch operations, billing, collections, and the General Ledger. Orders contain details about pickup, delivery, routing, load details, dangerous goods information, status history, trace numbers, rates, charges, extra charges, quotes, and more. \n\nOrders and rate quotes can be viewed in the TruckMate Customer Service application where you can enter and manage additional information about costs and expenses related to the freight bill. These include interliner charges, COD on freight, and freight bill based driver pay.\n\nPickup requests are viewed in the TruckMate Order Preprocessor application.\n\nChild resources of the orders, rate quotes and pickup requests are found on their individual tabs within the associated Windows applications.\n\nThe endpoints, methods and features available are dependent on the authorization methods used."
+        },
+        {
+            "name": "Reports",
+            "description": "The TruckMate Reports API allows for retrieval and generation of Crystal and Zebra reports that are configured in TruckMate. Report parameters can be included when the API is used for report generation.\n\nReports are encoded in base64 and can be converted to text formats such as PDF using a valid converter tool. Reports are configured and can be generated using the TruckMate Crystal Report Launcher application."
+        },
+        {
+            "name": "Transit Times",
+            "description": "Retrieves transit times using TruckMate's Service Level Matrix to calculate estimated delivery dates given pickup and delivery locations, service level(s) and pickup date(s)."
+        },
+        {
+            "name": "Trips",
+            "description": "The TruckMate Trips API allows access to TruckMate trips. Trips can have resources assigned such as orders, carriers, drivers, power units and trailers. LTL and single leg based trips can be created using the TruckMate Trips API.\n\nTrips can be viewed in the TruckMate Dispatch and Multi-Mode Dispatch applications where further additional dispatch related operations can be performed such as trip optimization, parking trips at doors and more.\n\nThe endpoints, methods and features available are dependent on the authorization methods used."
+        },
+        {
+            "name": "Version",
+            "description": "The version endpoint allows the ART server version information to be retrieved. This will include the version number of the TruckMate ART Server (Windows Service) application."
+        },
+        {
+            "name": "Web Address Book",
+            "description": "Retrieves, creates and updates TM4Web address book entries. TM4WEB address book entries can be viewed in the TruckMate Web Administration program > Client Features > Contacts tab > Address Book sub-tab. The TM4Web address book allows customers to provide contact addresses to their web users which may not yet be clients configured within TruckMate's Customer Profile application. These non-existent contacts should be reviewed in the Order Preprocessor program at which time the employee can decide if the contact already exists in Customer Profiles and change it to this, or if this is a new contact and needs to be added."
+        },
+        {
+            "name": "Web Users",
+            "description": "Retrieves, creates and updates TM4Web users. TM4Web users can be viewed and maintained in the TruckMate Customer & Vendor Profiles program on the TM4Web Configuration tab. TM4Web users can log into the TM4Web application (TruckMate's web-based, self-service portal). TM4Web credentials can also be used with API calls to retrieve orders based on some of their associated Web Administration configuration options through the TruckMate REST API > GET Orders endpoint."
+        },
+        {
+            "name": "Whoami",
+            "description": "Retrieves identity of the user associated with the provided authorization method."
+        }
+    ],
+    "externalDocs": {
+        "url": "https://learn.transportation.trimble.com/"
+    },
+    "paths": {
+        "/appointments": {
+            "get": {
+                "summary": "Retrieve existing appointments",
+                "description": "Retrieves an array of pre-booked appointments providing visibility to appointments made. The filter query parameter allows searching for specific appointments (e.g., by customer and/or external identifier). Use the optional limit and offset query parameters to page through the resulting sets of data.",
+                "operationId": "GetAppointments",
+                "security": [
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "tidJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/limit"
+                    },
+                    {
+                        "$ref": "#/components/parameters/offset"
+                    },
+                    {
+                        "$ref": "#/components/parameters/filter"
+                    },
+                    {
+                        "$ref": "#/components/parameters/orderBy"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetAppointments200"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new appointment",
+                "description": "Creates a single new pre-booked appointment. Use the external identifier and source fields to uniquely identify the external system that is maintaining this appointment. A valid TruckMate customer who is placing this appointment is required. The appointment type, either pickup or delivery, is also required.",
+                "operationId": "PostAppointment",
+                "security": [
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "tidJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "requestBody": {
+                    "description": "A single JSON object containing the properties of the new appointment to be created.",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PreappointmentPostRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/appointment"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/appointments/{appointmentId}": {
+            "get": {
+                "summary": "Retrieve an appointment",
+                "description": "Retrieves a pre-booked appointment as specified by the appointment identifier in the target path parameter.",
+                "operationId": "GetAppointment",
+                "security": [
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "tidJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "parameters": [
+                    {
+                        "name": "appointmentId",
+                        "in": "path",
+                        "description": "appointment identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/appointment"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update an appointment",
+                "description": "Updates a pre-booked appointment as specified by the appointment identifier in the target path parameter. Can be used for partial updates as only the properties sent in the request will be updated. Will return a 409 Conflict response if the appointment has already been matched to an order.",
+                "operationId": "PutAppointment",
+                "security": [
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "tidJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Appointments"
+                ],
+                "requestBody": {
+                    "description": "A single JSON object containing the properties to be updated. All fields are optional, but at least one field must be sent.",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PreappointmentPutRequest"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "appointmentId",
+                        "in": "path",
+                        "description": "appointment identifier",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/appointment"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/cloudEvents": {
+            "post": {
+                "summary": "Submit Cloud Events",
+                "description": "Cloud Events allow submitting event data in common formats to provide interoperability across services.\n\nThe type attribute describes the type of event related to the originating occurrence.\n\nThere are currently 9 supported types:\n\n **noMatchingCarriers**\n\nBefore the tendering has even commenced waterfalling, this type would be submitted when the Routing Guide in TTC fails to match any carriers to the route per the IP record's Start to End zone. The result is a failed waterfall.\n\n **noEligibleCarriers**\n\nBefore the tendering has even commenced waterfalling, this type would be submitted when no eligible carriers have been found per the carriers provided by the Routing Guide. The result is a failed waterfall.\n\n **noRatedCarriers**\n\nBefore the tendering has even commenced waterfalling, this type would be submitted when no rates could be calculated per the list of eligible carriers. The result is a failed waterfall.\n\n **exceptionOccurred**\n\nBefore or once the tendering has commenced waterfalling, this type would be submitted only when a miscellaneous exception has occurred for any reason. The result is a failed waterfall.\n\n **sendEDI**\n\nInstruct the TMS to send an EDI 204 to the carrier.\n\n **sendEDICancellation**\n\nInstruct the TMS to send an EDI Cancellation to the carrier due to timeout or user cancellation in TTC.\n\n **created**\n\nUsed for informational purposes only, to indicate that the tender has been created in TTC. Expected to contain an array of 1 or more carriers. The first carrier to tender will have a status of 'IN_PROGRESS'. All other carriers will have a status of 'PENDING'.\n\n **updated**\n\nUsed for informational purposes only, to indicate that the tender has been updated in TTC. Expected to contain an array of 1 or more carriers. One carrier is expected to have a status of 'IN_PROGRESS'. All other carriers will have a status of either 'PENDING', 'REJECTED' or 'EXPIRED'.\n\n **completed**\n\nIndicates that the Waterfall Tender is complete with either one or none of the carriers accepting ('ACCEPT') the load or user has canceled in TTC with a status of 'REJECTED', 'EXPIRED', 'TERMINATED' or 'CANCELED'.",
+                "operationId": "PostCloudEvents",
+                "security": [
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Cloud Events"
+                ],
+                "requestBody": {
+                    "description": "",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CloudEventPostRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents": {
+            "get": {
+                "summary": "Retrieve document configuration records",
+                "description": "Retrieves document configuration records.",
+                "operationId": "GetDocuments",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "webuserJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Documents"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/limit"
+                    },
+                    {
+                        "$ref": "#/components/parameters/offset"
+                    },
+                    {
+                        "$ref": "#/components/parameters/filter"
+                    },
+                    {
+                        "$ref": "#/components/parameters/select"
+                    },
+                    {
+                        "$ref": "#/components/parameters/orderBy"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetDocuments200"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/documents/{documentType}/searchValues/{documentIdentifier}/{documentFormat}": {
+            "get": {
+                "summary": "Retrieve a document from the image system",
+                "description": "Retrieves a document from the imaging server.\nThe document type and document identifier path parameters are used along with the token provided in the query string to determine access to the document.\nDocuments will be converted and returned in the specified document format (only PDF is supported at this time).",
+                "operationId": "GetDocument",
+                "tags": [
+                    "Documents"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "documentType",
+                    "in": "path",
+                    "description": "document type",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "documentIdentifier",
+                    "in": "path",
+                    "description": "document identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "documentFormat",
+                    "in": "path",
+                    "description": "Format in which to return document (only PDF is supported currently)",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "token",
+                    "in": "query",
+                    "description": "Time sensitive access token",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ]
+        },
+        "/Documents/{documentType}/searchValues/{documentIdentifier}/token": {
+            "post": {
+                "summary": "Generate document access token",
+                "description": "Generates a time sensitive token to be used in subsequent calls to retrieve the specific document from the imaging system.\nThe document type, as configured in the imaging system, and a document identifier, such as bill number, are required path parameters.\nTruckMate API Credentials are required to generate the access token. The user configured in the TruckMate ART Server Administrator to run the TruckMate API Service provides the profile that determines which imaging documents can be accessed for generating the access token.",
+                "operationId": "PostToken",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "webuserJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Documents"
+                ],
+                "requestBody": {
+                    "description": "A single JSON object containing the length of time the token should be valid. Default expiry is one week, if no payload is provided.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DocumentTokenPostRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/documentToken"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "documentType",
+                    "in": "path",
+                    "description": "document type",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "name": "documentIdentifier",
+                    "in": "path",
+                    "description": "document identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            ]
+        },
+        "/login": {
+            "get": {
+                "summary": "Renew login session",
+                "description": "Retrieves a new JWT (JSON Web Token) with a updated expiry time based on the supplied JWT authorization.",
+                "operationId": "GetAuth",
+                "security": [
+                    {
+                        "webuserJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/login"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Generate a JWT",
+                "description": "Generates and returns a JWT based on the supplied login credentials. The JWT can then be used as the authorization bearer token with subsequent API calls.",
+                "operationId": "PostAuth",
+                "tags": [
+                    "Login"
+                ],
+                "requestBody": {
+                    "description": "A single JSON object containing the username and password of a TM4Web user.",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/login"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orderCustomsData": {
+            "get": {
+                "summary": "Retrieve order customs information",
+                "description": "Retrieves order customs records.\n\nCustoms information for an order can be viewed in the Customer Service application > Customs tab.",
+                "operationId": "GetOrderCustoms",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/limit"
+                    },
+                    {
+                        "$ref": "#/components/parameters/offset"
+                    },
+                    {
+                        "name": "expand",
+                        "in": "query",
+                        "description": "Expand applicable sub-resources separated by comma.",
+                        "required": false,
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "ace",
+                                    "aci",
+                                    "customsBroker",
+                                    "userFields"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/filter"
+                    },
+                    {
+                        "$ref": "#/components/parameters/select"
+                    },
+                    {
+                        "$ref": "#/components/parameters/orderBy"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetOrderCustoms200"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create customs information for orders",
+                "description": "Creates one or more customs information records for orders.\n\nCustoms information for an order can be viewed in the Customer Service application > Customs tab.",
+                "operationId": "PostOrderCustom",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "requestBody": {
+                    "description": "",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PostOrderCustomsDataList"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/select"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostOrderCustom201"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orderCustomsData/{customsId}": {
+            "get": {
+                "summary": "Retrieve an order customs information",
+                "description": "Retrieve a specific order customs record.\n\nCustoms information for an order can be viewed in the Customer Service application > Customs tab.",
+                "operationId": "GetOrderCustom",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/select"
+                    },
+                    {
+                        "name": "expand",
+                        "in": "query",
+                        "description": "Expand applicable sub-resources separated by comma.",
+                        "required": false,
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "ace",
+                                    "aci",
+                                    "customsBroker",
+                                    "userFields"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/orderCustom"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update an order customs information",
+                "description": "Updates one or more properties for the specified order customs record.\n\nCustoms information for an order can be viewed in the Customer Service application > Customs tab.",
+                "operationId": "PutOrderCustom",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "requestBody": {
+                    "description": "The $select system query option allows clients to requests a specific set of properties for each entity or complex type.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PutOrderCustomsDataRequest"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/select"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/orderCustom"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete an order customs information",
+                "description": "Deletes the specified order customs record.\n\nCustoms information for an order can be viewed in the Customer Service application > Customs tab.",
+                "operationId": "DeleteOrderCustom",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "customsId",
+                    "in": "path",
+                    "description": "Order customs identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ]
+        },
+        "/orderCustomsData/{customsId}/ace": {
+            "get": {
+                "summary": "Retrieve order customs ACE information",
+                "description": "Retrieves an order customs ACE record.\n\nCustoms ACE information for an order can be viewed in the Customer Service application > Customs tab > ACE and ACE In-Bond tabs.",
+                "operationId": "OrderCustomsGetOrderCustomAce",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/select"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/orderCustomAce"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "customsId",
+                    "in": "path",
+                    "description": "Order customs identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ]
+        },
+        "/orderCustomsData/{customsId}/aci": {
+            "get": {
+                "summary": "Retrieve order customs ACI information",
+                "description": "Retrieves an order customs ACI record.\n\nCustoms ACI information for an order can be viewed in the Customer Service application > Customs tab > ACI tab.",
+                "operationId": "OrderCustomsGetOrderCustomAci",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/select"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/orderCustomAci"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "customsId",
+                    "in": "path",
+                    "description": "Order customs identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ]
+        },
+        "/orderCustomsData/{customsId}/customsBroker": {
+            "get": {
+                "summary": "Retrieve order customs broker information",
+                "description": "Retrieves an order customs broker record.\n\nCustoms broker information for an order can be viewed in the Customer Service application > Customs tab.",
+                "operationId": "OrderCustomsGetOrderCustomBroker",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/select"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/orderCustomsBroker"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "customsId",
+                    "in": "path",
+                    "description": "Order customs identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ]
+        },
+        "/orderCustomsData/{customsId}/userFields": {
+            "get": {
+                "summary": "Retrieve order customs user fields",
+                "description": "Retrieves an order customs user fields record.\n\nCustoms user fields for an order can be viewed in the Customer Service application > Customs tab > User Fields tab.",
+                "operationId": "OrderCustomsGetOrderCustomUserFields",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Order Customs"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/select"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/orderCustomsUserFields"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "customsId",
+                    "in": "path",
+                    "description": "Order customs identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ]
+        },
+        "/orders": {
+            "get": {
+                "summary": "Retrieve orders, pickup requests or rate quotes",
+                "description": "Retrieves order, pickup request, or rate quote records.\n\nOrders and rate quotes can be viewed in the Customer Service application.\n\nThe ratingTerms field will only return a value if the following app config option is enabled.\n\n   - RATES.EXE > Terms Rate Precedence\n\nPickup requests can be viewed in the Order Preprocessor application.",
+                "operationId": "GetOrders",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "webuserJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/limit"
+                    },
+                    {
+                        "$ref": "#/components/parameters/offset"
+                    },
+                    {
+                        "name": "expand",
+                        "in": "query",
+                        "description": "Expand applicable sub-resources separated by comma.",
+                        "required": false,
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "aCharges",
+                                    "aCharges/aChargeCurrencyRates",
+                                    "details",
+                                    "details/ratesheetCurrencyRates",
+                                    "details/barcodes",
+                                    "osds",
+                                    "osds/osdDetails",
+                                    "shipInstructs",
+                                    "traceNumbers",
+                                    "notes",
+                                    "interliners",
+                                    "interliners/dropLocation",
+                                    "interliners/pickupLocation",
+                                    "interliners/aCharges",
+                                    "statusHistory",
+                                    "pods",
+                                    "dangerousGoods",
+                                    "customDefs",
+                                    "checklist",
+                                    "terminalPlans",
+                                    "billing",
+                                    "caller",
+                                    "shipper",
+                                    "careOf",
+                                    "otherContact",
+                                    "consignee",
+                                    "pickupAt",
+                                    "xrefCode",
+                                    "xrefCode/shipIntructs",
+                                    "intermodal",
+                                    "billToCustomer"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/filter"
+                    },
+                    {
+                        "$ref": "#/components/parameters/select"
+                    },
+                    {
+                        "$ref": "#/components/parameters/orderBy"
+                    },
+                    {
+                        "$ref": "#/components/parameters/excludePositions"
+                    },
+                    {
+                        "name": "traceType",
+                        "in": "query",
+                        "description": "Trace type to search by. Required when using search functionality.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "traceNumber",
+                        "in": "query",
+                        "description": "Trace number to search for. Required when using search functionality.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/type"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetOrders200"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create a new order, pickup request or rate quote",
+                "description": "Creates one or more order, pickup request or rate quote records.\n\nThe following fields will be defaulted based on the following app config options:\n\n* CSERV.EXE > Default Bill To\n\n* CSERV.EXE > Default Site\n\n Other configuration options can affect how certain field values are populated if not provided in the request:\n\n* startZone - defaults to the provided shipper zone or the shipper's default zone\n\n* endZone - defaults to the provided consignee zone\n\n* serviceLevel - defaults to Codes Maintenance > Site Setup > Service Level default\n\nThe billToCode can only be updated using the billTo override (R) option.\n\nThe interliner (I) option for billTo can only be used if there is at least one interliner record with that has a receivable chargesType option set.\n\nDuplicate PO is not allowed on traceNumber for the same billTo when the app config option CSERV.EXE > Check PO is set.\n\nOrders and rate quotes can be viewed in the  Customer Service application.\n\nPickup requests can be viewed in the Order Preprocessor application.\n\nApp config options can be viewed in the Application Configurator application.",
+                "operationId": "PostOrders",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "clientApiKeyAuth": []
+                    },
+                    {
+                        "webuserJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "requestBody": {
+                    "description": "The $select system query option allows clients to requests a specific set of properties for each entity or complex type.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OrdersPostRequest"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/type"
+                    },
+                    {
+                        "name": "copyOrderId",
+                        "in": "query",
+                        "description": "Create a new order or rate quote from an existing order or rate quote",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/select"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PostOrders201"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{orderId}": {
+            "get": {
+                "summary": "Retrieve an order, pickup request, or rate quote",
+                "description": "Retrieves a specific order, pickup request, or rate quote record.\n\nOrders and rate quotes can be viewed in the Customer Service application.\n\nThe ratingTerms field will only return a value if the following app config option is enabled.\n\n   - RATES.EXE > Terms Rate Precedence\n\nPickup requests can be viewed in the Order Preprocessor application.",
+                "operationId": "GetOrder",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "webuserJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/type"
+                    },
+                    {
+                        "$ref": "#/components/parameters/select"
+                    },
+                    {
+                        "name": "expand",
+                        "in": "query",
+                        "description": "Expand applicable sub-resources separated by comma.",
+                        "required": false,
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "aCharges",
+                                    "aCharges/aChargeCurrencyRates",
+                                    "details",
+                                    "details/ratesheetCurrencyRates",
+                                    "details/barcodes",
+                                    "osds",
+                                    "osds/osdDetails",
+                                    "shipInstructs",
+                                    "traceNumbers",
+                                    "notes",
+                                    "interliners",
+                                    "interliners/dropLocation",
+                                    "interliners/pickupLocation",
+                                    "interliners/aCharges",
+                                    "statusHistory",
+                                    "pods",
+                                    "dangerousGoods",
+                                    "customDefs",
+                                    "checklist",
+                                    "terminalPlans",
+                                    "billing",
+                                    "caller",
+                                    "shipper",
+                                    "careOf",
+                                    "otherContact",
+                                    "consignee",
+                                    "pickupAt",
+                                    "xrefCode",
+                                    "xrefCode/shipIntructs",
+                                    "intermodal",
+                                    "billToCustomer"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "$ref": "#/components/parameters/excludePositions"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/order"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Update an order, pickup request or rate quote",
+                "description": "Updates one or more properties of the specified order, pickup request or rate quote record.\n\nOnly active orders, or pickup requests associated with the authentication key used to access the endpoint can be updated.\n\n* Approved pickup requests cannot be updated.\n\n* Orders must be posted (have a bill number) and cannot be cancelled or interfaced to billing.\n\nNot all of the Security Configuration > Security > Business Events settings for Customer Service which allow or prevent editing of orders based on tab, status and other options are used by the APIs.\n\nThe requested body may include child resources such as details, dangerousGoods, customDefs, etc. Keep in mind when a resource is specified in the body, it will do a complete replace of that resource. In other words, it will DELETE ALL records of the specified resource in the order, and insert new ones from the request body.\n\nTo update an individual child record use the PUT method directly against the child resource record itself.\n\n* For example, to update an individual detail line use PUT /orders/{orderId}/details/{orderDetailId}\n\nNote that the API cannot edit or delete a Cash-On-Delivery (COD) record for an order but it can update the codAmount. If no COD record exists for the order, the API will create it.\n\nThe estimatedDeliveryDate will be updated based on the following app config option:\n\n* CSERVE.EXE > Reset Estimated Delivery Date Value When Delivery Date of Freight Bill Changed\n\nThe billToCode can only be updated using the billTo override (R) option.\n\nThe interliner (I) option for billTo can only be used if there is at least one interliner record with that has a receivable chargesType option set.\n\nDuplicate PO is not allowed on traceNumber for the same billTo when the app config option CSERV.EXE > Check PO is set.\n\nOrders and rate quotes can be viewed in the Customer Service application.\n\nPickup requests can be viewed in the Order Preprocessor application.\n\nCOD records can be viewed in the Customer Service application > COD tab.",
+                "operationId": "PutOrder",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "requestBody": {
+                    "description": "A single JSON object containing the properties to be updated. All fields are optional, but at least one field must be sent.",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OrderPutRequest"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/type"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/order"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "orderId",
+                    "in": "path",
+                    "description": "order identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ]
+        },
+        "/orders/{orderId}/aCharges": {
+            "get": {
+                "summary": "Retrieve order accessorial charges",
+                "description": "Retrieves accessorial charge records for the specified order.\n\nAccessorial charge records can be viewed in the Customer Service application > Acc Chgs tab.",
+                "operationId": "OrdersGetACharges",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    },
+                    {
+                        "webuserJwtAuth": []
+                    }
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/type"
+                    },
+                    {
+                        "$ref": "#/components/parameters/limit"
+                    },
+                    {
+                        "$ref": "#/components/parameters/offset"
+                    },
+                    {
+                        "name": "expand",
+                        "in": "query",
+                        "description": "Expand applicable sub-resources separated by comma.",
+                        "required": false,
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "aChargeCurrencyRates"
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrdersGetACharges200"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Add order accessorial charges",
+                "description": "Adds one or more accessorial charge records for the specified order.\n\nAccessorial charge records can be viewed in the Customer Service application > Acc Chgs tab.",
+                "operationId": "OrdersPostACharge",
+                "security": [
+                    {
+                        "tidJwtAuth": []
+                    },
+                    {
+                        "truckmateApiKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "requestBody": {
+                    "description": "An array of JSON objects containing the properties of the accessorial charge records to add to the order.",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/OrderAChargesRequest"
+                            }
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/type"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrdersPostACharge201"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden access",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ARTErrors"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "name": "orderId",
+                    "in": "path",
+                    "description": "order identifier",
+                    "required": true,
+                    "schema": {
+                        "type": "integer"
+                    }
+                }
+            ]
+        },

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/File_Logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parse-It | AI Document Automation</title>
+    <script>
+      // Early dark mode initialization - prevents flash of incorrect theme
+      (function() {
+        try {
+          const darkMode = localStorage.getItem('darkMode');
+          if (darkMode !== null) {
+            const isDark = JSON.parse(darkMode);
+            if (isDark) {
+              document.documentElement.classList.add('dark');
+            }
+          } else {
+            // Check system preference
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+              document.documentElement.classList.add('dark');
+            }
+          }
+        } catch (e) {
+          console.error('Failed to initialize dark mode:', e);
+        }
+      })();
+
+      window.opencvLoadError = false;
+      window.opencvLoadSuccess = false;
+    </script>
+    <script
+      async
+      src="https://docs.opencv.org/4.7.0/opencv.js"
+      onload="window.opencvLoadSuccess = true; console.log('[OpenCV] Script loaded successfully');"
+      onerror="window.opencvLoadError = true; console.error('[OpenCV] Script failed to load');"
+    ></script>
+    <meta property="og:image" content="https://bolt.new/static/og_default.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+</head>
+  <body>
+    <div id="root"></div>
+    <div id="datepicker-portal"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,1 @@
+ALTER TABLE invoice_templates ADD COLUMN IF NOT EXISTS request_body_mappings jsonb NOT NULL DEFAULT '[]';
