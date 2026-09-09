@@ -1,1 +1,0 @@
-ALTER TABLE order_entry_template_field_groups ADD COLUMN IF NOT EXISTS is_hidden boolean DEFAULT false;
