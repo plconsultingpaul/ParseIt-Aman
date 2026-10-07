@@ -24,6 +24,7 @@ const STEP_TYPE_LABELS: Record<string, string> = {
   read_email: 'Read Email',
   imaging: 'Imaging',
   read_barcode: 'Read Barcode',
+  error_handler: 'Error Handler',
 };
 
 export default function V2StepCopyFromModal({ currentWorkflowId, onCopy, onCancel }: V2StepCopyFromModalProps) {
