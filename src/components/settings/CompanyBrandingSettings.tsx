@@ -1,7 +1,53 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, Building, Image, Eye, EyeOff, Upload, Loader } from 'lucide-react';
+import { Save, Building, Image, Eye, EyeOff, Upload, Loader, Clock } from 'lucide-react';
 import type { CompanyBranding } from '../../types';
 import { uploadCompanyLogo } from '../../services/configService';
+import CustomDropdown, { type DropdownOption } from '../common/CustomDropdown';
+
+const TIMEZONE_OPTIONS: DropdownOption[] = [
+  { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+  { value: 'America/St_Johns', label: 'Newfoundland Time (America/St_Johns)' },
+  { value: 'America/Halifax', label: 'Atlantic Time (America/Halifax)' },
+  { value: 'America/New_York', label: 'Eastern Time (America/New_York)' },
+  { value: 'America/Toronto', label: 'Eastern Time (America/Toronto)' },
+  { value: 'America/Chicago', label: 'Central Time (America/Chicago)' },
+  { value: 'America/Winnipeg', label: 'Central Time (America/Winnipeg)' },
+  { value: 'America/Denver', label: 'Mountain Time (America/Denver)' },
+  { value: 'America/Edmonton', label: 'Mountain Time (America/Edmonton)' },
+  { value: 'America/Phoenix', label: 'Mountain Time - no DST (America/Phoenix)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (America/Los_Angeles)' },
+  { value: 'America/Vancouver', label: 'Pacific Time (America/Vancouver)' },
+  { value: 'America/Anchorage', label: 'Alaska Time (America/Anchorage)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time (Pacific/Honolulu)' },
+  { value: 'America/Mexico_City', label: 'Mexico City (America/Mexico_City)' },
+  { value: 'America/Sao_Paulo', label: 'Sao Paulo (America/Sao_Paulo)' },
+  { value: 'Europe/London', label: 'London (Europe/London)' },
+  { value: 'Europe/Dublin', label: 'Dublin (Europe/Dublin)' },
+  { value: 'Europe/Paris', label: 'Paris (Europe/Paris)' },
+  { value: 'Europe/Berlin', label: 'Berlin (Europe/Berlin)' },
+  { value: 'Europe/Madrid', label: 'Madrid (Europe/Madrid)' },
+  { value: 'Europe/Rome', label: 'Rome (Europe/Rome)' },
+  { value: 'Europe/Amsterdam', label: 'Amsterdam (Europe/Amsterdam)' },
+  { value: 'Europe/Stockholm', label: 'Stockholm (Europe/Stockholm)' },
+  { value: 'Europe/Warsaw', label: 'Warsaw (Europe/Warsaw)' },
+  { value: 'Europe/Athens', label: 'Athens (Europe/Athens)' },
+  { value: 'Europe/Istanbul', label: 'Istanbul (Europe/Istanbul)' },
+  { value: 'Europe/Moscow', label: 'Moscow (Europe/Moscow)' },
+  { value: 'Africa/Johannesburg', label: 'Johannesburg (Africa/Johannesburg)' },
+  { value: 'Asia/Dubai', label: 'Dubai (Asia/Dubai)' },
+  { value: 'Asia/Karachi', label: 'Karachi (Asia/Karachi)' },
+  { value: 'Asia/Kolkata', label: 'India (Asia/Kolkata)' },
+  { value: 'Asia/Bangkok', label: 'Bangkok (Asia/Bangkok)' },
+  { value: 'Asia/Singapore', label: 'Singapore (Asia/Singapore)' },
+  { value: 'Asia/Hong_Kong', label: 'Hong Kong (Asia/Hong_Kong)' },
+  { value: 'Asia/Shanghai', label: 'Shanghai (Asia/Shanghai)' },
+  { value: 'Asia/Tokyo', label: 'Tokyo (Asia/Tokyo)' },
+  { value: 'Asia/Seoul', label: 'Seoul (Asia/Seoul)' },
+  { value: 'Australia/Perth', label: 'Perth (Australia/Perth)' },
+  { value: 'Australia/Adelaide', label: 'Adelaide (Australia/Adelaide)' },
+  { value: 'Australia/Sydney', label: 'Sydney (Australia/Sydney)' },
+  { value: 'Pacific/Auckland', label: 'Auckland (Pacific/Auckland)' }
+];
 
 interface CompanyBrandingSettingsProps {
   companyBranding: CompanyBranding;
@@ -238,6 +284,36 @@ export default function CompanyBrandingSettings({
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               When populated, a "Videos" button will appear in the sidebar that opens this link in a new tab.
+            </p>
+          </div>
+        </div>
+
+        {/* Regional Settings */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="bg-teal-100 dark:bg-teal-900/50 p-2 rounded-lg">
+              <Clock className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-gray-100">Regional Settings</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Company-wide timezone used when Execute Flow API Endpoints send date and time values</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Company Timezone
+            </label>
+            <CustomDropdown
+              value={localBranding.timezone || 'UTC'}
+              onChange={(value) => updateBranding('timezone', value)}
+              options={TIMEZONE_OPTIONS}
+              placeholder="Select a timezone"
+              searchable
+              icon={<Clock className="h-4 w-4 text-gray-400" />}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              When a date/time value is sent from an Execute Flow API Endpoint step, the value will be tagged with this timezone's offset so the receiving system receives an unambiguous timestamp. Defaults to UTC.
             </p>
           </div>
         </div>
