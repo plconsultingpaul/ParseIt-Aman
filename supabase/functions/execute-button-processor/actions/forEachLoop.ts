@@ -6,6 +6,43 @@ interface ForEachResult {
   loopChildNodeIds: Set<string>;
 }
 
+const FOR_EACH_COUNT_MIN = 0;
+const FOR_EACH_COUNT_MAX = 1000;
+
+export function resolveCountAsArray(countPath: string, contextData: any): number[] {
+  console.log(`[FOR_EACH_DEBUG] resolveCountAsArray called with path: "${countPath}"`);
+
+  if (!countPath || !countPath.trim()) {
+    throw new Error('For Each (count mode): countPath is empty');
+  }
+
+  let raw: any = getValueByPath(contextData, countPath);
+  if (raw === null || raw === undefined) {
+    raw = getValueByPath(contextData.execute, countPath);
+  }
+  if (raw === null || raw === undefined) {
+    raw = getValueByPath(contextData.response, countPath);
+  }
+  if (raw === null || raw === undefined) {
+    const resolved = replaceVariables(countPath, contextData);
+    if (resolved !== countPath) raw = resolved;
+  }
+
+  console.log(`[FOR_EACH_DEBUG] Count raw value: ${JSON.stringify(raw)}, type=${typeof raw}`);
+
+  const num = typeof raw === 'number' ? raw : Number(String(raw ?? '').trim());
+  if (!Number.isFinite(num)) {
+    throw new Error(`For Each (count mode): "${countPath}" did not resolve to a number. Got: ${JSON.stringify(raw)}`);
+  }
+
+  const n = Math.max(FOR_EACH_COUNT_MIN, Math.min(FOR_EACH_COUNT_MAX, Math.floor(num)));
+  console.log(`[FOR_EACH_DEBUG] Count resolved to ${n} (clamped from ${num})`);
+
+  const arr: number[] = [];
+  for (let i = 1; i <= n; i++) arr.push(i);
+  return arr;
+}
+
 export function resolveSourceArray(sourceArrayPath: string, contextData: any): any[] {
   console.log(`[FOR_EACH_DEBUG] resolveSourceArray called with path: "${sourceArrayPath}"`);
   console.log(`[FOR_EACH_DEBUG] contextData top-level keys: ${Object.keys(contextData || {}).join(', ')}`);
@@ -88,9 +125,14 @@ export function initOrAdvanceForEach(
   const config = node.config_json || {};
   const sourceArrayPath = config.sourceArray || '';
   const itemVariable = config.itemVariable || 'item';
+  const loopMode: 'array' | 'count' = config.loopMode === 'count' ? 'count' : 'array';
+  const countPath: string = config.countPath || '';
 
-  if (!sourceArrayPath) {
+  if (loopMode === 'array' && !sourceArrayPath) {
     throw new Error('For Each step requires a sourceArray configuration');
+  }
+  if (loopMode === 'count' && !countPath) {
+    throw new Error('For Each step (count mode) requires a countPath configuration');
   }
 
   const loopEdge = flowEdges.find(
@@ -127,7 +169,9 @@ export function initOrAdvanceForEach(
 
   if (!existing) {
     console.log(`[FOR_EACH_DRIVER] First entry for node "${node.label}" (${node.id})`);
-    const items = resolveSourceArray(sourceArrayPath, contextData);
+    const items = loopMode === 'count'
+      ? resolveCountAsArray(countPath, contextData)
+      : resolveSourceArray(sourceArrayPath, contextData);
     const state: ForEachState = {
       items,
       itemVariable,
@@ -268,16 +312,23 @@ export async function executeForEachLoop(
   const config = node.config_json || {};
   const sourceArrayPath = config.sourceArray || '';
   const itemVariable = config.itemVariable || 'item';
+  const loopMode: 'array' | 'count' = config.loopMode === 'count' ? 'count' : 'array';
+  const countPath: string = config.countPath || '';
 
   console.log(`[FOR_EACH_DEBUG] ===== executeForEachLoop START =====`);
   console.log(`[FOR_EACH_DEBUG] node.id=${node.id}, label="${node.label}"`);
-  console.log(`[FOR_EACH_DEBUG] sourceArrayPath="${sourceArrayPath}", itemVariable="${itemVariable}"`);
+  console.log(`[FOR_EACH_DEBUG] loopMode="${loopMode}", sourceArrayPath="${sourceArrayPath}", countPath="${countPath}", itemVariable="${itemVariable}"`);
 
-  if (!sourceArrayPath) {
+  if (loopMode === 'array' && !sourceArrayPath) {
     throw new Error('For Each step requires a sourceArray configuration');
   }
+  if (loopMode === 'count' && !countPath) {
+    throw new Error('For Each step (count mode) requires a countPath configuration');
+  }
 
-  const arrayData = resolveSourceArray(sourceArrayPath, contextData);
+  const arrayData = loopMode === 'count'
+    ? resolveCountAsArray(countPath, contextData)
+    : resolveSourceArray(sourceArrayPath, contextData);
   console.log(`[FOR_EACH_DEBUG] arrayData length=${arrayData.length}`);
 
   const loopChildNodeIds = collectLoopBodyNodeIds(node.id, flowEdges, executionOrder);
