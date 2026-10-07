@@ -3,6 +3,7 @@ import { Save, Mail, Zap, Play, Pause, Cloud, Globe, Send, Filter, Clock, Calend
 import CustomDropdown from '../common/CustomDropdown';
 import type { EmailMonitoringConfig, EmailProcessingRule, ExtractionType, TransformationType, CronStatus, CronSettings, PostProcessAction } from '../../types';
 import EmailRulesSettings from './EmailRulesSettings';
+import EmailSendingAccountsSection from './EmailSendingAccountsSection';
 import { supabase, getAuthHeaders } from '../../lib/supabase';
 
 interface EmailMonitoringSettingsProps {
@@ -15,7 +16,7 @@ interface EmailMonitoringSettingsProps {
   isAdmin?: boolean;
 }
 
-type EmailTab = 'config' | 'rules';
+type EmailTab = 'config' | 'sending-accounts' | 'rules';
 
 export default function EmailMonitoringSettings({
   emailConfig,
@@ -502,7 +503,25 @@ export default function EmailMonitoringSettings({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        let serverMessage = '';
+        const ctx: any = (error as any).context;
+        if (ctx && typeof ctx.json === 'function') {
+          try {
+            const body = await ctx.clone().json();
+            serverMessage = body?.details || body?.error || '';
+          } catch {
+            try {
+              serverMessage = await ctx.clone().text();
+            } catch {}
+          }
+        }
+        setSendTestResult({
+          success: false,
+          message: serverMessage || error.message || 'Failed to send test email',
+        });
+        return;
+      }
 
       if (result?.success) {
         setSendTestResult({
@@ -543,6 +562,19 @@ export default function EmailMonitoringSettings({
           <span className="text-sm font-medium">Email Provider Configuration</span>
         </button>
         <button
+          onClick={() => setActiveTab('sending-accounts')}
+          className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-md transition-all duration-200 ${
+            activeTab === 'sending-accounts'
+              ? 'bg-white dark:bg-gray-600 text-blue-700 dark:text-blue-300 shadow-sm font-medium'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600'
+          }`}
+        >
+          <Send className={`h-4 w-4 ${
+            activeTab === 'sending-accounts' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+          }`} />
+          <span className="text-sm font-medium">Sending Accounts</span>
+        </button>
+        <button
           onClick={() => setActiveTab('rules')}
           className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-md transition-all duration-200 ${
             activeTab === 'rules'
@@ -558,7 +590,9 @@ export default function EmailMonitoringSettings({
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'config' ? (
+      {activeTab === 'sending-accounts' ? (
+        <EmailSendingAccountsSection />
+      ) : activeTab === 'config' ? (
         <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
