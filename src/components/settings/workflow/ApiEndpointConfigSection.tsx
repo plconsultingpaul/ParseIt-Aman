@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Info, Braces, ExternalLink, AlertCircle, Plus, Trash2, FileText, Save, Repeat, Layers, List, Code, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import Select from '../../common/Select';
+import CustomDropdown from '../../common/CustomDropdown';
 import VariableDropdown from './VariableDropdown';
 import SpecFieldDropdown from './SpecFieldDropdown';
 import { FieldMappingFunctionsManager } from '../FieldMappingFunctionsManager';
@@ -106,6 +107,8 @@ export default function ApiEndpointConfigSection({ config, onChange, allSteps = 
     { responsePath: '', updatePath: '' }
   ]);
   const [responseReturnsArray, setResponseReturnsArray] = useState(config?.responseReturnsArray || false);
+  const [responseArraySort, setResponseArraySort] = useState<'none' | 'asc' | 'desc'>(config?.responseArraySort || 'none');
+  const [responseArraySortField, setResponseArraySortField] = useState<string>(config?.responseArraySortField || '');
   const [mainApiConfig, setMainApiConfig] = useState<any>(null);
   const [selectedSecondaryApi, setSelectedSecondaryApi] = useState<SecondaryApi | null>(null);
   const [escapeSingleQuotesInBody, setEscapeSingleQuotesInBody] = useState(config?.escapeSingleQuotesInBody !== false);
@@ -210,7 +213,7 @@ export default function ApiEndpointConfigSection({ config, onChange, allSteps = 
 
   useEffect(() => {
     updateParentConfig();
-  }, [apiSourceType, selectedSecondaryApiId, httpMethod, selectedEndpoint, queryParameterConfig, customQueryParameters, pathVariableConfig, manualApiEntry, manualApiPath, responseDataMappings, responseReturnsArray, escapeSingleQuotesInBody, requestBodyTemplate, requestBodyFieldMappings, arrayProcessingMode, arraySourceGroupId, stopOnError, wrapBodyInArray, conditionalArrayMappings, responseTransformEnabled, responseTransformArrayPath, responseTransformFilters, responseTransformSelectFields, responseTransformSkipIfEmpty]);
+  }, [apiSourceType, selectedSecondaryApiId, httpMethod, selectedEndpoint, queryParameterConfig, customQueryParameters, pathVariableConfig, manualApiEntry, manualApiPath, responseDataMappings, responseReturnsArray, responseArraySort, responseArraySortField, escapeSingleQuotesInBody, requestBodyTemplate, requestBodyFieldMappings, arrayProcessingMode, arraySourceGroupId, stopOnError, wrapBodyInArray, conditionalArrayMappings, responseTransformEnabled, responseTransformArrayPath, responseTransformFilters, responseTransformSelectFields, responseTransformSkipIfEmpty]);
 
   const restoreConfigFromProps = async () => {
     if (!config) {
@@ -280,6 +283,13 @@ export default function ApiEndpointConfigSection({ config, onChange, allSteps = 
 
       if (config.responseReturnsArray !== undefined) {
         setResponseReturnsArray(config.responseReturnsArray);
+      }
+
+      if (config.responseArraySort !== undefined) {
+        setResponseArraySort(config.responseArraySort);
+      }
+      if (config.responseArraySortField !== undefined) {
+        setResponseArraySortField(config.responseArraySortField);
       }
 
       // Restore escape single quotes setting
@@ -1002,6 +1012,8 @@ export default function ApiEndpointConfigSection({ config, onChange, allSteps = 
         ? responseDataMappings
         : undefined,
       responseReturnsArray: responseReturnsArray || undefined,
+      responseArraySort: responseArraySort !== 'none' ? responseArraySort : undefined,
+      responseArraySortField: responseArraySort !== 'none' ? (responseArraySortField.trim() || undefined) : undefined,
       manualApiEntry,
       escapeSingleQuotesInBody,
       requestBodyTemplate: requestBodyTemplate || undefined,
@@ -2344,6 +2356,50 @@ export default function ApiEndpointConfigSection({ config, onChange, allSteps = 
             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               Enable when the API returns an array of records. Each mapping will extract the value from every record and store them as an array, instead of only using the first record.
             </p>
+          </div>
+        </div>
+
+        <div className="p-3 bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 rounded-md space-y-3">
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Sort Response Records
+            </label>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+              When the API returns an array of records, sort them before picking the first one. Choose Descending with a date/id field to return the latest record instead of the first one the API returned.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Sort Order
+              </label>
+              <CustomDropdown
+                value={responseArraySort}
+                onChange={(v) => setResponseArraySort(v as 'none' | 'asc' | 'desc')}
+                options={[
+                  { value: 'none', label: 'None (use API order)' },
+                  { value: 'asc', label: 'Ascending (oldest / smallest first)' },
+                  { value: 'desc', label: 'Descending (latest / largest first)' },
+                ]}
+                size="sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Sort By Field
+              </label>
+              <input
+                type="text"
+                value={responseArraySortField}
+                onChange={(e) => setResponseArraySortField(e.target.value)}
+                disabled={responseArraySort === 'none'}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 font-mono text-sm dark:bg-gray-600 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder="e.g. createdAt, id, orderDate"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Field on each record to sort by. Leave blank to sort by the record value itself.
+              </p>
+            </div>
           </div>
         </div>
 
