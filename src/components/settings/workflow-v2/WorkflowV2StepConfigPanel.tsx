@@ -44,6 +44,7 @@ const STEP_TYPES: { value: WorkflowV2StepType; label: string }[] = [
   { value: 'user_message', label: 'User Message' },
   { value: 'inbox', label: 'Inbox Review' },
   { value: 'update_imaging_document', label: 'Update Imaging Document' },
+  { value: 'error_handler', label: 'Error Handler' },
 ];
 
 export default function WorkflowV2StepConfigPanel({
@@ -80,6 +81,7 @@ export default function WorkflowV2StepConfigPanel({
   const [emailBodyCursorPos, setEmailBodyCursorPos] = useState<number | null>(null);
   const [notificationTemplates, setNotificationTemplates] = useState<any[]>([]);
   const [selectedTemplateCustomFields, setSelectedTemplateCustomFields] = useState<Array<{name: string; label: string; description?: string}>>([]);
+  const [sendingAccounts, setSendingAccounts] = useState<Array<{ id: string; account_name: string; provider: string; from_email: string; is_default: boolean }>>([]);
 
   const getMultipartButtonRef = (key: string): React.RefObject<HTMLButtonElement> => {
     if (!multipartButtonRefs.current[key]) {
@@ -133,6 +135,21 @@ export default function WorkflowV2StepConfigPanel({
   }, []);
 
   useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('email_sending_accounts')
+          .select('id, account_name, provider, from_email, is_default')
+          .order('is_default', { ascending: false })
+          .order('account_name', { ascending: true });
+        setSendingAccounts(data || []);
+      } catch (err) {
+        console.error('Error loading email sending accounts:', err);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     if (config.notificationTemplateId && notificationTemplates.length > 0) {
       const template = notificationTemplates.find((t: any) => t.id === config.notificationTemplateId);
       if (template && template.custom_fields) {
@@ -148,7 +165,11 @@ export default function WorkflowV2StepConfigPanel({
   useEffect(() => {
     setLocalLabel(label);
     setLocalStepType(stepType);
-    const newConfig = configJson || {};
+    const newConfig = { ...(configJson || {}) };
+    if (stepType === 'conditional_check' && !newConfig.operator && !newConfig.conditionType) {
+      newConfig.operator = 'equals';
+      newConfig.conditionType = 'equals';
+    }
     setConfig(newConfig);
     setLocalEscapeQuotes(escapeSingleQuotesInBody);
     setLocalResponseTemplate(userResponseTemplate);
@@ -974,6 +995,31 @@ export default function WorkflowV2StepConfigPanel({
 
   const renderEmailConfig = () => (
     <div className="space-y-3">
+      <div>
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+          Send From Account
+        </label>
+        <CustomDropdown
+          value={config.sendingAccountId || ''}
+          onChange={(val) => updateConfig('sendingAccountId', val || null)}
+          options={[
+            {
+              value: '',
+              label: sendingAccounts.some(a => a.is_default)
+                ? `Use default account (${sendingAccounts.find(a => a.is_default)?.account_name})`
+                : 'Use default provider from Email Monitoring',
+            },
+            ...sendingAccounts.map((a) => ({
+              value: a.id,
+              label: `${a.account_name} — ${a.from_email}${a.is_default ? ' (default)' : ''}`,
+            })),
+          ]}
+          placeholder="Use default provider from Email Monitoring"
+        />
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Manage accounts in Settings &rarr; Email Monitoring &rarr; Sending Accounts. When no account is selected, the workflow uses the default provider configured in Email Monitoring.
+        </p>
+      </div>
       <div>
         <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">To</label>
         <div className="flex space-x-2">
@@ -2133,6 +2179,27 @@ export default function WorkflowV2StepConfigPanel({
     );
   };
 
+  const renderErrorHandlerConfig = () => (
+    <div className="space-y-3">
+      <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-800 dark:text-red-200">
+        <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+        <div className="space-y-1">
+          <p>This step works like a Try/Catch. If any step before it (since the previous Error Handler) fails, the workflow jumps here and follows the <strong>On Error</strong> path.</p>
+          <p>If nothing failed, this step is skipped and the workflow continues down the <strong>No Error</strong> path.</p>
+          <p>The run is still marked Failed and failure notifications still go out. If a step on the On Error path fails, the workflow stops.</p>
+        </div>
+      </div>
+      <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300">
+        <p className="font-medium mb-1">Available on the On Error path:</p>
+        <ul className="space-y-0.5 font-mono">
+          <li>{'{{error.message}}'}</li>
+          <li>{'{{error.stepName}}'}</li>
+          <li>{'{{error.stepType}}'}</li>
+        </ul>
+      </div>
+    </div>
+  );
+
   const renderUserMessageConfig = () => {
     const allVariables = (allNodes || [])
       .filter(n => n.id !== nodeId && n.data?.configJson?.responseDataMappings)
@@ -2289,6 +2356,7 @@ export default function WorkflowV2StepConfigPanel({
       );
       case 'user_message': return renderUserMessageConfig();
       case 'inbox': return renderInboxConfig();
+      case 'error_handler': return renderErrorHandlerConfig();
       case 'update_imaging_document': return (
         <V2UpdateImagingDocumentConfig
           config={config}
