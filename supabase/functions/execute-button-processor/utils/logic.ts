@@ -1,38 +1,163 @@
 import { getValueByPath } from "./objectPaths.ts";
 
-export function evaluateFunctionLogic(functionLogic: any, data: any): any {
+function getZonedParts(date: Date, timeZone?: string): { year: number; month: number; day: number; hours: number; minutes: number; seconds: number } {
+  if (!timeZone || timeZone === 'UTC' && date.getTimezoneOffset() === 0) {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hours: date.getHours(),
+      minutes: date.getMinutes(),
+      seconds: date.getSeconds()
+    };
+  }
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    const parts = fmt.formatToParts(date);
+    const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value || '0', 10);
+    let hours = get('hour');
+    if (hours === 24) hours = 0;
+    return {
+      year: get('year'),
+      month: get('month'),
+      day: get('day'),
+      hours,
+      minutes: get('minute'),
+      seconds: get('second')
+    };
+  } catch {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hours: date.getHours(),
+      minutes: date.getMinutes(),
+      seconds: date.getSeconds()
+    };
+  }
+}
+
+function parseWallClock(raw: string): { year: number; month: number; day: number; hours: number; minutes: number; seconds: number } | null {
+  const s = raw.trim();
+  if (!s) return null;
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?)?$/);
+  if (iso) {
+    return {
+      year: +iso[1], month: +iso[2], day: +iso[3],
+      hours: iso[4] ? +iso[4] : 0,
+      minutes: iso[5] ? +iso[5] : 0,
+      seconds: iso[6] ? +iso[6] : 0
+    };
+  }
+  const slash = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (slash) {
+    return {
+      year: +slash[3], month: +slash[1], day: +slash[2],
+      hours: slash[4] ? +slash[4] : 0,
+      minutes: slash[5] ? +slash[5] : 0,
+      seconds: slash[6] ? +slash[6] : 0
+    };
+  }
+  const mmm = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (mmm) {
+    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const mi = months.indexOf(mmm[2].toLowerCase());
+    if (mi >= 0) {
+      return {
+        year: +mmm[3], month: mi + 1, day: +mmm[1],
+        hours: mmm[4] ? +mmm[4] : 0,
+        minutes: mmm[5] ? +mmm[5] : 0,
+        seconds: mmm[6] ? +mmm[6] : 0
+      };
+    }
+  }
+  const timeAmPm = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([AaPp][Mm])$/);
+  if (timeAmPm) {
+    let h = +timeAmPm[1]; const m = +timeAmPm[2]; const sec = timeAmPm[3] ? +timeAmPm[3] : 0;
+    const pm = timeAmPm[4].toLowerCase() === 'pm';
+    if (h === 12) h = pm ? 12 : 0; else if (pm) h += 12;
+    return { year: 0, month: 0, day: 0, hours: h, minutes: m, seconds: sec };
+  }
+  const time24 = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (time24) {
+    return { year: 0, month: 0, day: 0, hours: +time24[1], minutes: +time24[2], seconds: time24[3] ? +time24[3] : 0 };
+  }
+  return null;
+}
+
+function shiftCalendarDays(
+  p: { year: number; month: number; day: number; hours: number; minutes: number; seconds: number },
+  days: number
+): { year: number; month: number; day: number; hours: number; minutes: number; seconds: number } {
+  if (!days || p.year === 0) return p;
+  const utc = new Date(Date.UTC(p.year, p.month - 1, p.day));
+  utc.setUTCDate(utc.getUTCDate() + days);
+  return {
+    year: utc.getUTCFullYear(),
+    month: utc.getUTCMonth() + 1,
+    day: utc.getUTCDate(),
+    hours: p.hours,
+    minutes: p.minutes,
+    seconds: p.seconds
+  };
+}
+
+export function evaluateFunctionLogic(functionLogic: any, data: any, companyTimezone?: string): any {
   if (!functionLogic) return undefined;
 
   if (functionLogic.type === 'date') {
-    let baseDate: Date;
-    if (functionLogic.source === 'current_date') {
-      baseDate = new Date();
-    } else {
-      const fieldValue = functionLogic.fieldName ? getValueByPath(data, functionLogic.fieldName) : null;
-      if (!fieldValue) return '';
-      baseDate = new Date(fieldValue);
-      if (isNaN(baseDate.getTime())) return '';
-    }
     const days = functionLogic.days || 0;
-    if (functionLogic.operation === 'subtract') {
-      baseDate.setDate(baseDate.getDate() - days);
-    } else {
-      baseDate.setDate(baseDate.getDate() + days);
-    }
-    const y = baseDate.getFullYear();
-    const m = String(baseDate.getMonth() + 1).padStart(2, '0');
-    const d = String(baseDate.getDate()).padStart(2, '0');
     const fmt = functionLogic.outputFormat || 'YYYY-MM-DD';
-    if (fmt === 'MM/DD/YYYY') return `${m}/${d}/${y}`;
-    if (fmt === 'DD/MM/YYYY') return `${d}/${m}/${y}`;
-    if (fmt === 'MM-DD-YYYY') return `${m}-${d}-${y}`;
-    if (fmt === 'YYYY-MM-DDTHH:mm:ss') {
-      const hh = String(baseDate.getHours()).padStart(2, '0');
-      const mm = String(baseDate.getMinutes()).padStart(2, '0');
-      const ss = String(baseDate.getSeconds()).padStart(2, '0');
-      return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+    const formatFromParts = (p: { year: number; month: number; day: number; hours: number; minutes: number; seconds: number }) => {
+      const y = String(p.year).padStart(4, '0');
+      const m = String(p.month).padStart(2, '0');
+      const d = String(p.day).padStart(2, '0');
+      if (fmt === 'MM/DD/YYYY') return `${m}/${d}/${y}`;
+      if (fmt === 'DD/MM/YYYY') return `${d}/${m}/${y}`;
+      if (fmt === 'MM-DD-YYYY') return `${m}-${d}-${y}`;
+      if (fmt === 'YYYY-MM-DDTHH:mm:ss') {
+        const hh = String(p.hours).padStart(2, '0');
+        const mm = String(p.minutes).padStart(2, '0');
+        const ss = String(p.seconds).padStart(2, '0');
+        return `${y}-${m}-${d}T${hh}:${mm}:${ss}`;
+      }
+      return `${y}-${m}-${d}`;
+    };
+
+    if (functionLogic.source === 'current_date') {
+      const baseDate = new Date();
+      if (functionLogic.operation === 'subtract') baseDate.setUTCDate(baseDate.getUTCDate() - days);
+      else if (functionLogic.operation === 'add') baseDate.setUTCDate(baseDate.getUTCDate() + days);
+      return formatFromParts(getZonedParts(baseDate, companyTimezone));
     }
-    return `${y}-${m}-${d}`;
+
+    const fieldValue = functionLogic.fieldName ? getValueByPath(data, functionLogic.fieldName) : null;
+    if (fieldValue === null || fieldValue === undefined || fieldValue === '') return '';
+    const raw = String(fieldValue).trim();
+    if (!raw) return '';
+
+    const hasZone = /Z$|[+-]\d{2}:?\d{2}$/.test(raw);
+
+    if (!hasZone) {
+      const parts = parseWallClock(raw);
+      if (parts) {
+        const shifted = days !== 0
+          ? shiftCalendarDays(parts, functionLogic.operation === 'subtract' ? -days : (functionLogic.operation === 'add' ? days : 0))
+          : parts;
+        return formatFromParts(shifted);
+      }
+    }
+
+    const baseDate = new Date(raw);
+    if (isNaN(baseDate.getTime())) return '';
+    if (functionLogic.operation === 'subtract') baseDate.setUTCDate(baseDate.getUTCDate() - days);
+    else if (functionLogic.operation === 'add') baseDate.setUTCDate(baseDate.getUTCDate() + days);
+    return formatFromParts(getZonedParts(baseDate, companyTimezone));
   }
 
   if (functionLogic.type === 'datetime_merge') {
