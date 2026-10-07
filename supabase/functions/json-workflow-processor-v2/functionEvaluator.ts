@@ -81,13 +81,56 @@ export function getFieldValue(fieldPath: string, data: Record<string, any>): any
   return value;
 }
 
-function formatDate(date: Date, format: string = 'YYYY-MM-DD'): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+function getZonedParts(date: Date, timeZone?: string): { year: number; month: number; day: number; hours: number; minutes: number; seconds: number } {
+  if (!timeZone) {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hours: date.getHours(),
+      minutes: date.getMinutes(),
+      seconds: date.getSeconds()
+    };
+  }
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    const parts = fmt.formatToParts(date);
+    const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value || '0', 10);
+    let hours = get('hour');
+    if (hours === 24) hours = 0;
+    return {
+      year: get('year'),
+      month: get('month'),
+      day: get('day'),
+      hours,
+      minutes: get('minute'),
+      seconds: get('second')
+    };
+  } catch {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hours: date.getHours(),
+      minutes: date.getMinutes(),
+      seconds: date.getSeconds()
+    };
+  }
+}
+
+function formatDate(date: Date, format: string = 'YYYY-MM-DD', timeZone?: string): string {
+  const zp = getZonedParts(date, timeZone);
+  const year = zp.year;
+  const month = String(zp.month).padStart(2, '0');
+  const day = String(zp.day).padStart(2, '0');
+  const hours = String(zp.hours).padStart(2, '0');
+  const minutes = String(zp.minutes).padStart(2, '0');
+  const seconds = String(zp.seconds).padStart(2, '0');
 
   switch (format) {
     case 'YYYY-MM-DD':
@@ -199,7 +242,7 @@ export function evaluateDateTimeMergeFunction(logic: DateTimeMergeFunctionLogic,
   return result;
 }
 
-export function evaluateDateFunction(logic: DateFunctionLogic, data: Record<string, any>): string {
+export function evaluateDateFunction(logic: DateFunctionLogic, data: Record<string, any>, companyTimezone?: string): string {
   let baseDate: Date;
 
   if (logic.source === 'current_date') {
@@ -217,12 +260,12 @@ export function evaluateDateFunction(logic: DateFunctionLogic, data: Record<stri
 
   const days = logic.days || 0;
   if (logic.operation === 'subtract') {
-    baseDate.setDate(baseDate.getDate() - days);
+    baseDate.setUTCDate(baseDate.getUTCDate() - days);
   } else {
-    baseDate.setDate(baseDate.getDate() + days);
+    baseDate.setUTCDate(baseDate.getUTCDate() + days);
   }
 
-  return formatDate(baseDate, logic.outputFormat);
+  return formatDate(baseDate, logic.outputFormat, companyTimezone);
 }
 
 export function evaluateCondition(condition: FunctionCondition['if'], data: Record<string, any>): boolean {
@@ -275,13 +318,13 @@ export function evaluateCondition(condition: FunctionCondition['if'], data: Reco
   }
 }
 
-export function evaluateFunction(functionLogic: FunctionLogic, data: Record<string, any>): any {
+export function evaluateFunction(functionLogic: FunctionLogic, data: Record<string, any>, companyTimezone?: string): any {
   if (!functionLogic) {
     return undefined;
   }
 
   if (isDateFunctionLogic(functionLogic)) {
-    return evaluateDateFunction(functionLogic, data);
+    return evaluateDateFunction(functionLogic, data, companyTimezone);
   }
 
   if (isDateTimeMergeFunctionLogic(functionLogic)) {
