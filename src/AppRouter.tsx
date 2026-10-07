@@ -42,6 +42,9 @@ import SsoCallback from './components/SsoCallback';
 import ClientSubmissionsPage from './components/ClientSubmissionsPage';
 import InboxPage from './components/InboxPage';
 import InboxReviewPage from './components/InboxReviewPage';
+import GuestPaymentPage from './components/GuestPaymentPage';
+import GuestPaymentSuccessPage from './components/GuestPaymentSuccessPage';
+import GuestPaymentCancelPage from './components/GuestPaymentCancelPage';
 
 import type { ExtractionType, TransformationType, SftpConfig, SettingsConfig, ApiConfig, EmailMonitoringConfig, EmailProcessingRule } from './types';
 
@@ -204,7 +207,7 @@ function AppContent() {
     );
   }
 
-  const publicPaths = ['/client/login', '/client', '/password-setup', '/reset-password', '/help', '/execute', '/imaging/view', '/auth/sso'];
+  const publicPaths = ['/client/login', '/client', '/password-setup', '/reset-password', '/help', '/execute', '/imaging/view', '/auth/sso', '/guest-payment'];
   const isPublicPath = publicPaths.some(p => location.pathname === p || location.pathname.startsWith(p + '/'));
 
   if (!isAuthenticated || !user) {
@@ -221,6 +224,9 @@ function AppContent() {
           <Route path="/help" element={<HelpPage />} />
           <Route path="/execute/:slug" element={<PublicExecutePage />} />
           <Route path="/imaging/view" element={<ImagingViewerPage />} />
+          <Route path="/guest-payment" element={<GuestPaymentPage companyBranding={companyBranding} />} />
+          <Route path="/guest-payment/success" element={<GuestPaymentSuccessPage companyBranding={companyBranding} />} />
+          <Route path="/guest-payment/cancel" element={<GuestPaymentCancelPage companyBranding={companyBranding} />} />
           <Route path="/client/login" element={
             <ClientPortalLogin
               companyBranding={companyBranding}
@@ -250,6 +256,9 @@ function AppContent() {
       <Route path="/auth/sso" element={<SsoCallback />} />
       <Route path="/execute/:slug" element={<PublicExecutePage />} />
       <Route path="/imaging/view" element={<ImagingViewerPage />} />
+      <Route path="/guest-payment" element={<GuestPaymentPage companyBranding={companyBranding} />} />
+      <Route path="/guest-payment/success" element={<GuestPaymentSuccessPage companyBranding={companyBranding} />} />
+      <Route path="/guest-payment/cancel" element={<GuestPaymentCancelPage companyBranding={companyBranding} />} />
       <Route path="/inbox/:id" element={
         <PrivateRoute isAuthenticated={isAuthenticated} user={user}>
           <RoleBasedRoute
