@@ -752,6 +752,7 @@ export interface ExportedExtractionType {
       fields: Omit<ArrayEntryField, 'id' | 'arrayEntryId'>[];
     }[];
     functions: {
+      original_id?: string;
       function_name: string;
       description?: string;
       function_type: string;
@@ -851,6 +852,7 @@ export async function exportExtractionType(extractionType: ExtractionType): Prom
           }))
       })),
       functions: functions.map(f => ({
+        original_id: f.id,
         function_name: f.function_name,
         description: f.description,
         function_type: f.function_type || 'conditional',
@@ -872,53 +874,6 @@ export async function importExtractionType(exportData: ExportedExtractionType): 
       newName = `${exportData.typeName} (Imported)`;
     }
 
-    const functionIdMap = new Map<string, string>();
-
-    for (const func of exportData.relatedData.functions) {
-      const { data: existingFunc } = await supabase
-        .from('field_mapping_functions')
-        .select('id, function_name')
-        .eq('function_name', func.function_name)
-        .maybeSingle();
-
-      if (existingFunc) {
-        functionIdMap.set(func.function_name, existingFunc.id);
-      } else {
-        const { data: newFunc, error: funcError } = await supabase
-          .from('field_mapping_functions')
-          .insert({
-            function_name: func.function_name,
-            description: func.description,
-            function_type: func.function_type,
-            function_logic: func.function_logic
-          })
-          .select('id')
-          .single();
-
-        if (funcError) throw funcError;
-        functionIdMap.set(func.function_name, newFunc.id);
-      }
-    }
-
-    let fieldMappings = exportData.type.fieldMappings;
-    if (fieldMappings) {
-      fieldMappings = fieldMappings.map(mapping => {
-        if (mapping.type === 'function' && mapping.functionId) {
-          const funcData = exportData.relatedData.functions.find(f => {
-            const originalFunc = exportData.relatedData.functions.find(fn => fn.function_name);
-            return originalFunc;
-          });
-          if (funcData) {
-            const newFuncId = functionIdMap.get(funcData.function_name);
-            if (newFuncId) {
-              return { ...mapping, functionId: newFuncId };
-            }
-          }
-        }
-        return mapping;
-      });
-    }
-
     const { data: newType, error: typeError } = await supabase
       .from('extraction_types')
       .insert({
@@ -928,7 +883,7 @@ export async function importExtractionType(exportData: ExportedExtractionType): 
         filename: exportData.type.filename || '',
         format_type: exportData.type.formatType || 'XML',
         json_path: exportData.type.jsonPath || '',
-        field_mappings: fieldMappings ? JSON.stringify(fieldMappings) : null,
+        field_mappings: null,
         parseit_id_mapping: exportData.type.parseitIdMapping || null,
         trace_type_mapping: exportData.type.traceTypeMapping || null,
         trace_type_value: exportData.type.traceTypeValue || null,
@@ -950,11 +905,67 @@ export async function importExtractionType(exportData: ExportedExtractionType): 
 
     if (typeError) throw typeError;
 
+    try {
+      await importExtractionTypeRelatedData(exportData, newType.id);
+    } catch (relatedError) {
+      await supabase.from('extraction_types').delete().eq('id', newType.id);
+      throw relatedError;
+    }
+
+    return { success: true, newTypeId: newType.id };
+  } catch (error: any) {
+    console.error('Error importing extraction type:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function importExtractionTypeRelatedData(exportData: ExportedExtractionType, newTypeId: string): Promise<void> {
+    const exportedFunctions = exportData.relatedData.functions || [];
+    const functionIdMap = new Map<string, string>();
+    const createdFunctionIds: string[] = [];
+
+    for (const func of exportedFunctions) {
+      const { data: newFunc, error: funcError } = await supabase
+        .from('field_mapping_functions')
+        .insert({
+          extraction_type_id: newTypeId,
+          function_name: func.function_name,
+          description: func.description,
+          function_type: func.function_type,
+          function_logic: func.function_logic
+        })
+        .select('id')
+        .single();
+
+      if (funcError) throw funcError;
+      createdFunctionIds.push(newFunc.id);
+      if (func.original_id) functionIdMap.set(func.original_id, newFunc.id);
+    }
+
+    // Older export files lack original_id; only a single function can be remapped unambiguously.
+    const singleLegacyFunctionId =
+      functionIdMap.size === 0 && createdFunctionIds.length === 1 ? createdFunctionIds[0] : undefined;
+
+    const fieldMappings = exportData.type.fieldMappings?.map(mapping => {
+      if (mapping.type !== 'function' || !mapping.functionId) return mapping;
+      const newFuncId = functionIdMap.get(mapping.functionId) ?? singleLegacyFunctionId;
+      return newFuncId ? { ...mapping, functionId: newFuncId } : mapping;
+    });
+
+    if (fieldMappings) {
+      const { error: mappingError } = await supabase
+        .from('extraction_types')
+        .update({ field_mappings: JSON.stringify(fieldMappings) })
+        .eq('id', newTypeId);
+
+      if (mappingError) throw mappingError;
+    }
+
     if (exportData.relatedData.arraySplitConfigs.length > 0) {
       const { error: splitError } = await supabase
         .from('extraction_type_array_splits')
         .insert(exportData.relatedData.arraySplitConfigs.map(split => ({
-          extraction_type_id: newType.id,
+          extraction_type_id: newTypeId,
           target_array_field: split.targetArrayField,
           split_based_on_field: split.splitBasedOnField,
           split_strategy: split.splitStrategy,
@@ -968,7 +979,7 @@ export async function importExtractionType(exportData: ExportedExtractionType): 
       const { data: newEntry, error: entryError } = await supabase
         .from('extraction_type_array_entries')
         .insert({
-          extraction_type_id: newType.id,
+          extraction_type_id: newTypeId,
           target_array_field: entry.targetArrayField,
           entry_order: entry.entryOrder,
           is_enabled: entry.isEnabled,
@@ -1002,23 +1013,6 @@ export async function importExtractionType(exportData: ExportedExtractionType): 
         if (fieldsError) throw fieldsError;
       }
     }
-
-    for (const func of exportData.relatedData.functions) {
-      const newFuncId = functionIdMap.get(func.function_name);
-      if (newFuncId) {
-        await supabase
-          .from('field_mapping_functions')
-          .update({ extraction_type_id: newType.id })
-          .eq('id', newFuncId)
-          .is('extraction_type_id', null);
-      }
-    }
-
-    return { success: true, newTypeId: newType.id };
-  } catch (error: any) {
-    console.error('Error importing extraction type:', error);
-    return { success: false, error: error.message };
-  }
 }
 
 interface PageGroupConfig {
