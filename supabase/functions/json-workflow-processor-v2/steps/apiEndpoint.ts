@@ -1,5 +1,24 @@
-import { getValueByPath } from "../utils.ts";
+import { getValueByPath, resolveAuthConfigLogin, persistAuthTokenToContext } from "../utils.ts";
 import { evaluateFunction, type FunctionLogic } from "../functionEvaluator.ts";
+
+async function fetchCompanyTimezone(supabaseUrl: string, supabaseServiceKey: string): Promise<string> {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/company_branding?select=timezone&order=updated_at.desc&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows?.[0]?.timezone) return rows[0].timezone;
+    }
+  } catch (err) {
+    console.warn('[CompanyTimezone] Failed to fetch, defaulting to UTC:', err);
+  }
+  return 'UTC';
+}
 
 export async function executeApiEndpoint(
   step: any,
@@ -8,9 +27,11 @@ export async function executeApiEndpoint(
   supabaseServiceKey: string
 ): Promise<{ stepOutput: any; responseData: any; resolvedRequestDetails: any; resolvedRequestBody: string }> {
   const config = step.config_json || {};
+  const companyTimezone = await fetchCompanyTimezone(supabaseUrl, supabaseServiceKey);
 
   let baseUrl = '';
   let authToken = '';
+  let authLoginData: any = null;
   const apiSourceType = config.apiSourceType || 'main';
 
   if (apiSourceType === 'main') {
@@ -45,6 +66,77 @@ export async function executeApiEndpoint(
         authToken = secondaryApis[0].auth_token || '';
       }
     }
+  }
+
+  if ((apiSourceType === 'main' || apiSourceType === 'secondary') && config.authConfigId) {
+    const resolved = await resolveAuthConfigLogin(supabaseUrl, supabaseServiceKey, config.authConfigId);
+    authToken = resolved.authToken;
+    authLoginData = resolved.authLoginData;
+    console.log(`[apiEndpoint auth] override login OK. tokenLen=${authToken.length}`);
+  } else if (apiSourceType === 'auth_config' && config.authConfigId) {
+    const resolved = await resolveAuthConfigLogin(supabaseUrl, supabaseServiceKey, config.authConfigId);
+    authToken = resolved.authToken;
+    authLoginData = resolved.authLoginData;
+    console.log(`[apiEndpoint auth] auth_config login OK. tokenLen=${authToken.length}`);
+  }
+
+  if (authToken) {
+    persistAuthTokenToContext(contextData, authToken, authLoginData);
+  }
+
+  if (apiSourceType === 'auth_config') {
+    const responseData = authLoginData;
+    const mappingsToProcess: any[] = Array.isArray(config.responseDataMappings) ? config.responseDataMappings : [];
+    const extractedValues: any[] = [];
+    for (const mapping of mappingsToProcess) {
+      if (!mapping.responsePath || !mapping.updatePath) continue;
+      try {
+        let extractedValue = getValueByPath(responseData, mapping.responsePath);
+        const hasDefault = mapping.defaultValue !== undefined && mapping.defaultValue !== null && mapping.defaultValue !== '';
+        if ((extractedValue === undefined || extractedValue === null || extractedValue === '') && hasDefault) {
+          extractedValue = mapping.defaultValue;
+        }
+        if (extractedValue !== undefined && extractedValue !== null) {
+          const pathParts = mapping.updatePath.split(/[.\[\]]/).filter(Boolean);
+          let current = contextData.extractedData || contextData;
+          for (let i = 0; i < pathParts.length - 1; i++) {
+            const part = pathParts[i];
+            if (!(part in current)) current[part] = {};
+            current = current[part];
+          }
+          const lastPart = pathParts[pathParts.length - 1];
+          current[lastPart] = extractedValue;
+          contextData[lastPart] = extractedValue;
+          if (!contextData.response) contextData.response = {};
+          let respCurrent = contextData.response;
+          for (let i = 0; i < pathParts.length - 1; i++) {
+            const part = pathParts[i];
+            if (!respCurrent[part]) respCurrent[part] = {};
+            respCurrent = respCurrent[part];
+          }
+          respCurrent[pathParts[pathParts.length - 1]] = extractedValue;
+          extractedValues.push({ path: mapping.responsePath, updatePath: mapping.updatePath, value: extractedValue, usedDefault: hasDefault && (getValueByPath(responseData, mapping.responsePath) === null || getValueByPath(responseData, mapping.responsePath) === undefined || getValueByPath(responseData, mapping.responsePath) === '') });
+        }
+      } catch (extractError) {
+        console.error(`[ApiEndpoint] auth_config mapping failed "${mapping.responsePath}" -> "${mapping.updatePath}":`, extractError);
+      }
+    }
+
+    const maskedToken = authToken ? `${authToken.substring(0, 4)}...${authToken.substring(authToken.length - 4)}` : '';
+    const stepOutput = {
+      mode: 'auth_config_login_only',
+      authConfigId: config.authConfigId,
+      tokenLength: authToken.length,
+      tokenMasked: maskedToken,
+      extractedValues,
+      updatedPaths: mappingsToProcess.map((m: any) => m.updatePath)
+    };
+    const resolvedRequestDetails = {
+      mode: 'auth_config_login_only',
+      authConfigId: config.authConfigId,
+      note: 'API Endpoint step short-circuited: performed Auth Config login only; no downstream HTTP request was made.'
+    };
+    return { stepOutput, responseData, resolvedRequestDetails, resolvedRequestBody: '' };
   }
 
   let apiPath = config.apiPath || '';
@@ -131,10 +223,59 @@ export async function executeApiEndpoint(
   const queryString = queryParams.toString();
   const fullUrl = `${baseUrl}${apiPath}${queryString ? '?' + queryString : ''}`;
 
+  const additionalHeadersConfig: Record<string, string> = config.additionalHeaders || {};
+  const customHeaderKeys = Object.keys(additionalHeadersConfig).map((k) => k.toLowerCase());
+  const hasCustomAuthHeader = customHeaderKeys.some(
+    (k) => k === 'authorization' || k === 'access-token' || k === 'x-access-token' || k === 'x-auth-token' || k === 'token'
+  );
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${authToken}`
+    'Content-Type': 'application/json'
   };
+  if (authToken && !hasCustomAuthHeader) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  } else if (authToken && hasCustomAuthHeader) {
+    console.log(`[apiEndpoint headers] Custom auth-style header present; suppressing built-in Authorization header. Custom keys: ${customHeaderKeys.join(', ')}`);
+  }
+
+  const resolvedCustomHeaders: Record<string, { template: string; resolved: string }> = {};
+  if (Object.keys(additionalHeadersConfig).length > 0) {
+    const existingResponse = (contextData.response && typeof contextData.response === 'object') ? contextData.response : {};
+    const loginDataObj = (authLoginData && typeof authLoginData === 'object') ? authLoginData : {};
+    const headerContext: any = {
+      ...contextData,
+      ...loginDataObj,
+      ...(authToken ? { access_token: authToken } : {}),
+      authToken,
+      authResponse: authLoginData,
+      response: authToken
+        ? { ...existingResponse, ...loginDataObj, access_token: authToken }
+        : existingResponse,
+    };
+    for (const [key, value] of Object.entries(additionalHeadersConfig)) {
+      if (key.toLowerCase() === 'content-type') continue;
+      const rawValue = String(value ?? '');
+      let resolvedHeaderValue = rawValue;
+      const headerVarRegex = /\{\{([^}]+)\}\}/g;
+      let hm: RegExpExecArray | null;
+      const unresolved: string[] = [];
+      while ((hm = headerVarRegex.exec(rawValue)) !== null) {
+        const varPath = hm[1];
+        const varValue = getValueByPath(headerContext, varPath);
+        if (varValue !== undefined && varValue !== null) {
+          const stringified = (typeof varValue === 'object') ? JSON.stringify(varValue) : String(varValue);
+          resolvedHeaderValue = resolvedHeaderValue.replace(hm[0], stringified);
+        } else {
+          unresolved.push(varPath);
+        }
+      }
+      if (unresolved.length > 0) {
+        console.warn(`[apiEndpoint headers] Header "${key}" has unresolved placeholders: ${unresolved.join(', ')}`);
+      }
+      headers[key] = resolvedHeaderValue;
+      resolvedCustomHeaders[key] = { template: rawValue, resolved: resolvedHeaderValue };
+    }
+  }
 
   const decodedQueryString = decodeURIComponent(queryString);
   const apiRequestDetails = {
@@ -149,38 +290,39 @@ export async function executeApiEndpoint(
     resolvedQueryParams: Object.keys(resolvedQueryParams).length > 0 ? resolvedQueryParams : undefined,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': authToken ? `Bearer ${authToken.substring(0, 10)}...` : 'MISSING'
+      'Authorization': authToken && !hasCustomAuthHeader ? `Bearer ${authToken.substring(0, 10)}...` : (authToken && hasCustomAuthHeader ? 'SUPPRESSED (custom auth header set)' : 'MISSING'),
+      ...(Object.keys(resolvedCustomHeaders).length > 0 ? { _customHeaders: resolvedCustomHeaders } : {})
     }
   };
 
   let requestBodyContent = config.requestBodyTemplate || '';
   const requestBodyFieldMappings = config.requestBodyFieldMappings || [];
 
+  const functionMappings = requestBodyFieldMappings.filter((m: any) => m.type === 'function' && m.functionId);
+  let functionsById: Record<string, any> = {};
+  if (functionMappings.length > 0) {
+    const functionIds = [...new Set(functionMappings.map((m: any) => m.functionId))];
+    const funcResponse = await fetch(
+      `${supabaseUrl}/rest/v1/field_mapping_functions?id=in.(${functionIds.join(',')})&select=*`,
+      {
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    if (funcResponse.ok) {
+      const funcs = await funcResponse.json();
+      for (const f of funcs) {
+        functionsById[f.id] = f;
+      }
+    }
+  }
+
   if (requestBodyFieldMappings.length > 0) {
     try {
       let requestBodyData = requestBodyContent ? JSON.parse(requestBodyContent) : {};
-
-      const functionMappings = requestBodyFieldMappings.filter((m: any) => m.type === 'function' && m.functionId);
-      let functionsById: Record<string, any> = {};
-      if (functionMappings.length > 0) {
-        const functionIds = [...new Set(functionMappings.map((m: any) => m.functionId))];
-        const funcResponse = await fetch(
-          `${supabaseUrl}/rest/v1/field_mapping_functions?id=in.(${functionIds.join(',')})&select=*`,
-          {
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'apikey': supabaseServiceKey,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        if (funcResponse.ok) {
-          const funcs = await funcResponse.json();
-          for (const f of funcs) {
-            functionsById[f.id] = f;
-          }
-        }
-      }
 
       for (const mapping of requestBodyFieldMappings) {
         const fieldPath = mapping.fieldName;
@@ -201,7 +343,7 @@ export async function executeApiEndpoint(
             try {
               const evalData = contextData.extractedData || contextData;
               console.log(`[FieldMapping] field=${fieldPath} type=function funcName="${func.function_name}" funcType=${func.function_logic?.type}`);
-              finalValue = evaluateFunction(func.function_logic as FunctionLogic, evalData);
+              finalValue = evaluateFunction(func.function_logic as FunctionLogic, evalData, companyTimezone);
               console.log(`[FieldMapping] field=${fieldPath} function result=${JSON.stringify(finalValue)}`);
             } catch (funcErr) {
               console.error(`Error evaluating function for field "${fieldPath}":`, funcErr);
@@ -230,12 +372,14 @@ export async function executeApiEndpoint(
             const dateValue = String(finalValue);
             if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateValue)) {
               finalValue = `${dateValue}:00`;
+            } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateValue)) {
+              finalValue = dateValue;
             } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
               finalValue = `${dateValue}T00:00:00`;
             } else {
               finalValue = dateValue;
             }
-          } else {
+          } else if (typeof finalValue !== 'object') {
             finalValue = String(finalValue);
           }
 
@@ -275,16 +419,252 @@ export async function executeApiEndpoint(
     });
   }
 
-  if (config.wrapBodyInArray && requestBodyContent?.trim()) {
-    try {
-      const parsedBody = JSON.parse(requestBodyContent);
-      if (!Array.isArray(parsedBody)) {
-        requestBodyContent = JSON.stringify([parsedBody]);
+  const _collectField = String(config.collectRowsIntoField || '').trim();
+  if (_collectField && requestBodyContent?.trim()) {
+    const arraySourcePath = String(config.arraySourcePath || '').trim().replace(/^\{\{|\}\}$/g, '');
+    let sourceArray: any[] | null = null;
+    if (arraySourcePath) {
+      const resolved = getValueByPath(contextData, arraySourcePath);
+      if (Array.isArray(resolved)) sourceArray = resolved;
+    }
+    if (sourceArray) {
+      let baseBody: any;
+      try {
+        baseBody = JSON.parse(requestBodyContent);
+      } catch (e) {
+        console.error('[collectRowsIntoField] base body did not parse as JSON:', e);
+        baseBody = {};
       }
-    } catch (e) {
-      console.warn('Could not wrap body in array - invalid JSON:', e);
+      const rowMappings = requestBodyFieldMappings.filter((m: any) =>
+        typeof m.fieldName === 'string' && (m.fieldName === _collectField || m.fieldName.startsWith(_collectField + '.'))
+      );
+      const rowObjects: any[] = [];
+      for (let rowIdx = 0; rowIdx < sourceArray.length; rowIdx++) {
+        const row = sourceArray[rowIdx] || {};
+        const rowLookup = (path: string) => {
+          const trimmed = path.trim();
+          if (row && typeof row === 'object' && trimmed in row) return (row as any)[trimmed];
+          return getValueByPath(contextData, trimmed);
+        };
+        const rowObj: any = {};
+        for (const mapping of rowMappings) {
+          const fullPath = mapping.fieldName;
+          const relPath = fullPath === _collectField ? '' : fullPath.slice(_collectField.length + 1);
+          const mappingType = mapping.type;
+          const mappingValue = mapping.value;
+          const dataType = mapping.dataType || 'string';
+          let finalValue;
+          if (mappingType === 'hardcoded') {
+            finalValue = mappingValue;
+          } else if (mappingType === 'variable') {
+            const variableName = String(mappingValue).replace(/^\{\{|\}\}$/g, '');
+            finalValue = rowLookup(variableName);
+            console.log(`[collectRowsIntoField] row=${rowIdx} field=${fullPath} var=${variableName} resolved=${JSON.stringify(finalValue)}`);
+          } else if (mappingType === 'function' && mapping.functionId) {
+            const func = functionsById[mapping.functionId];
+            if (func?.function_logic) {
+              try {
+                const evalData = { ...(contextData.extractedData || {}), ...row };
+                finalValue = evaluateFunction(func.function_logic as FunctionLogic, evalData, companyTimezone);
+              } catch (funcErr) {
+                console.error(`[collectRowsIntoField] function error row=${rowIdx} field=${fullPath}:`, funcErr);
+                continue;
+              }
+            } else {
+              continue;
+            }
+          } else {
+            continue;
+          }
+          if (finalValue === undefined || finalValue === null) continue;
+          if (dataType === 'integer') finalValue = parseInt(String(finalValue));
+          else if (dataType === 'number') finalValue = parseFloat(String(finalValue));
+          else if (dataType === 'boolean') finalValue = String(finalValue).toLowerCase() === 'true';
+          else if (dataType === 'date') {
+            const dv = String(finalValue);
+            const m = dv.match(/^(\d{4}-\d{2}-\d{2})/);
+            finalValue = m ? m[1] : dv;
+          } else if (dataType === 'datetime') {
+            const dv = String(finalValue);
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dv)) finalValue = `${dv}:00`;
+            else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dv)) finalValue = dv;
+            else if (/^\d{4}-\d{2}-\d{2}$/.test(dv)) finalValue = `${dv}T00:00:00`;
+            else finalValue = dv;
+          } else if (typeof finalValue !== 'object') {
+            finalValue = String(finalValue);
+          }
+          if (!relPath) continue;
+          const parts = relPath.split('.');
+          let cur = rowObj;
+          for (let i = 0; i < parts.length - 1; i++) {
+            const p = parts[i];
+            if (!cur[p] || typeof cur[p] !== 'object') cur[p] = {};
+            cur = cur[p];
+          }
+          cur[parts[parts.length - 1]] = finalValue;
+        }
+        rowObjects.push(rowObj);
+      }
+      const targetParts = _collectField.split('.');
+      let target = baseBody;
+      for (let i = 0; i < targetParts.length - 1; i++) {
+        const p = targetParts[i];
+        if (!target[p] || typeof target[p] !== 'object') target[p] = {};
+        target = target[p];
+      }
+      target[targetParts[targetParts.length - 1]] = rowObjects;
+      requestBodyContent = JSON.stringify(baseBody);
+      console.log(`[collectRowsIntoField] built single body with ${rowObjects.length} row(s) into "${_collectField}"`);
+    } else {
+      console.warn(`[collectRowsIntoField] arraySourcePath="${arraySourcePath}" did not resolve to an array; skipping collect mode`);
+    }
+  } else if (config.wrapBodyInArray && requestBodyContent?.trim()) {
+    const arraySourcePath = (config.arraySourcePath || '').trim();
+    let sourceArray: any[] | null = null;
+    if (arraySourcePath) {
+      const resolved = getValueByPath(contextData, arraySourcePath);
+      if (Array.isArray(resolved)) {
+        sourceArray = resolved;
+      } else {
+        console.warn(`[wrapBodyInArray] arraySourcePath="${arraySourcePath}" did not resolve to an array (got ${typeof resolved}); falling back to single-body wrap`);
+      }
+    }
+
+    if (sourceArray) {
+      const baseTemplate = config.requestBodyTemplate || '';
+      const perRowBodies: any[] = [];
+      console.log(`[wrapBodyInArray] iterating ${sourceArray.length} rows from "${arraySourcePath}"`);
+
+      for (let rowIdx = 0; rowIdx < sourceArray.length; rowIdx++) {
+        const row = sourceArray[rowIdx] || {};
+        const rowLookup = (path: string) => {
+          const trimmed = path.trim();
+          if (trimmed in row) return (row as any)[trimmed];
+          return getValueByPath(contextData, trimmed);
+        };
+
+        let rowBodyStr = baseTemplate.replace(/\{\{([^}]+)\}\}/g, (match: string, path: string) => {
+          const value = rowLookup(path);
+          if (value !== null && value !== undefined) {
+            return typeof value === 'object' ? JSON.stringify(value) : String(value);
+          }
+          return match;
+        });
+
+        let rowBodyData: any;
+        try {
+          rowBodyData = rowBodyStr ? JSON.parse(rowBodyStr) : {};
+        } catch (e) {
+          console.error(`[wrapBodyInArray] row ${rowIdx} template did not parse as JSON after substitution:`, e);
+          continue;
+        }
+
+        for (const mapping of requestBodyFieldMappings) {
+          const fieldPath = mapping.fieldName;
+          const mappingType = mapping.type;
+          const mappingValue = mapping.value;
+          const dataType = mapping.dataType || 'string';
+
+          let finalValue;
+          if (mappingType === 'hardcoded') {
+            finalValue = mappingValue;
+          } else if (mappingType === 'variable') {
+            const variableName = mappingValue.replace(/^\{\{|\}\}$/g, '');
+            finalValue = rowLookup(variableName);
+            console.log(`[FieldMapping] row=${rowIdx} field=${fieldPath} type=variable var=${variableName} resolved=${JSON.stringify(finalValue)}`);
+          } else if (mappingType === 'function' && mapping.functionId) {
+            const func = functionsById[mapping.functionId];
+            if (func?.function_logic) {
+              try {
+                const evalData = { ...(contextData.extractedData || {}), ...row };
+                console.log(`[FieldMapping] row=${rowIdx} field=${fieldPath} type=function funcName="${func.function_name}" funcType=${func.function_logic?.type}`);
+                finalValue = evaluateFunction(func.function_logic as FunctionLogic, evalData, companyTimezone);
+                console.log(`[FieldMapping] row=${rowIdx} field=${fieldPath} function result=${JSON.stringify(finalValue)}`);
+              } catch (funcErr) {
+                console.error(`Error evaluating function for field "${fieldPath}" row ${rowIdx}:`, funcErr);
+                continue;
+              }
+            } else {
+              continue;
+            }
+          } else {
+            continue;
+          }
+
+          if (finalValue !== undefined && finalValue !== null) {
+            if (dataType === 'integer') {
+              finalValue = parseInt(String(finalValue));
+            } else if (dataType === 'number') {
+              finalValue = parseFloat(String(finalValue));
+            } else if (dataType === 'boolean') {
+              finalValue = String(finalValue).toLowerCase() === 'true';
+            } else if (dataType === 'date') {
+              const dateValue = String(finalValue);
+              const dateMatch = dateValue.match(/^(\d{4}-\d{2}-\d{2})/);
+              finalValue = dateMatch ? dateMatch[1] : dateValue;
+            } else if (dataType === 'datetime') {
+              const dateValue = String(finalValue);
+              if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateValue)) {
+                finalValue = `${dateValue}:00`;
+              } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateValue)) {
+                finalValue = dateValue;
+              } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                finalValue = `${dateValue}T00:00:00`;
+              } else {
+                finalValue = dateValue;
+              }
+            } else if (typeof finalValue !== 'object') {
+              finalValue = String(finalValue);
+            }
+
+            const pathParts = fieldPath.split('.');
+            let current = rowBodyData;
+            for (let i = 0; i < pathParts.length - 1; i++) {
+              const part = pathParts[i];
+              if (!current[part]) current[part] = {};
+              current = current[part];
+            }
+            current[pathParts[pathParts.length - 1]] = finalValue;
+            console.log(`[FieldMapping] row=${rowIdx} SET field=${fieldPath} value=${JSON.stringify(finalValue)} (dataType=${dataType})`);
+          } else {
+            console.log(`[FieldMapping] row=${rowIdx} SKIP field=${fieldPath} (null/undefined)`);
+          }
+        }
+
+        perRowBodies.push(rowBodyData);
+      }
+
+      requestBodyContent = JSON.stringify(perRowBodies);
+    } else {
+      try {
+        const parsedBody = JSON.parse(requestBodyContent);
+        if (!Array.isArray(parsedBody)) {
+          let explodeKey: string | null = null;
+          if (parsedBody && typeof parsedBody === 'object') {
+            for (const k of Object.keys(parsedBody)) {
+              const v = (parsedBody as any)[k];
+              if (Array.isArray(v) && v.length > 0 && v.every((r: any) => r !== null && typeof r === 'object' && !Array.isArray(r))) {
+                explodeKey = k;
+                break;
+              }
+            }
+          }
+          if (explodeKey) {
+            const rows = (parsedBody as any)[explodeKey] as any[];
+            const exploded = rows.map((row) => ({ ...(parsedBody as any), [explodeKey!]: row }));
+            requestBodyContent = JSON.stringify(exploded);
+            console.log(`[wrapBodyInArray] exploded by "${explodeKey}" into ${exploded.length} row(s)`);
+          } else {
+            requestBodyContent = JSON.stringify([parsedBody]);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not wrap body in array - invalid JSON:', e);
+      }
     }
   }
+
+  console.log('[ApiEndpoint] final requestBody (length ' + (requestBodyContent?.length || 0) + '):', requestBodyContent);
 
   const fetchOptions: any = { method: httpMethod, headers };
   if (httpMethod.toUpperCase() !== 'GET' && requestBodyContent && requestBodyContent.trim() !== '') {
@@ -296,7 +676,7 @@ export async function executeApiEndpoint(
     apiResponse = await fetch(fullUrl, fetchOptions);
   } catch (fetchError: any) {
     const error: any = new Error(`${fetchError.message}`);
-    error.outputData = { requestAttempted: apiRequestDetails };
+    error.outputData = { requestAttempted: apiRequestDetails, requestBody: requestBodyContent };
     error.resolvedRequestDetails = apiRequestDetails;
     error.resolvedRequestBody = requestBodyContent;
     throw error;
@@ -307,6 +687,7 @@ export async function executeApiEndpoint(
     const error: any = new Error(`API endpoint call failed with status ${apiResponse.status}: ${errorText}`);
     error.outputData = {
       requestAttempted: apiRequestDetails,
+      requestBody: requestBodyContent,
       responseStatus: apiResponse.status,
       error: errorText
     };
