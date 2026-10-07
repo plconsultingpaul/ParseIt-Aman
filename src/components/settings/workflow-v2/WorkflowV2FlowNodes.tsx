@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Play, Globe, GitBranch, Mail, Upload, FileText, RefreshCw, Cog, Pencil as Edit2, Trash2, Send, BrainCircuit, Camera, BookOpen, Copy, ScanBarcode, MessageSquareText, Inbox, File as FileEdit } from 'lucide-react';
+import { Play, Globe, GitBranch, Mail, Upload, FileText, RefreshCw, Cog, Pencil as Edit2, Trash2, Send, BrainCircuit, Camera, BookOpen, Copy, ScanBarcode, MessageSquareText, Inbox, File as FileEdit, ShieldAlert } from 'lucide-react';
 
 interface StartNodeData {
   label: string;
@@ -46,6 +46,8 @@ const getStepIcon = (stepType: string) => {
       return <Inbox className="h-4 w-4" />;
     case 'update_imaging_document':
       return <FileEdit className="h-4 w-4" />;
+    case 'error_handler':
+      return <ShieldAlert className="h-4 w-4" />;
     default:
       return <Cog className="h-4 w-4" />;
   }
@@ -68,6 +70,7 @@ const getStepLabel = (stepType: string) => {
     case 'user_message': return 'User Message';
     case 'inbox': return 'Inbox Review';
     case 'update_imaging_document': return 'Update Imaging Document';
+    case 'error_handler': return 'Error Handler';
     default: return 'Step';
   }
 };
@@ -201,6 +204,15 @@ const getStepColor = (stepType: string) => {
         shadow: 'shadow-orange-200 dark:shadow-orange-900/50',
         handle: '!bg-orange-500',
       };
+    case 'error_handler':
+      return {
+        bg: 'bg-red-100 dark:bg-red-900/50',
+        text: 'text-red-600 dark:text-red-400',
+        border: 'border-red-300 dark:border-red-600',
+        selectedBorder: 'border-red-500',
+        shadow: 'shadow-red-200 dark:shadow-red-900/50',
+        handle: '!bg-red-500',
+      };
     default:
       return {
         bg: 'bg-gray-100 dark:bg-gray-700',
@@ -241,7 +253,8 @@ StartNode.displayName = 'StartNode';
 
 export const WorkflowStepNode = memo(({ data, selected }: NodeProps<WorkflowStepNodeData>) => {
   const colors = getStepColor(data.stepType);
-  const isBranching = data.stepType === 'conditional_check';
+  const isBranching = data.stepType === 'conditional_check' || data.stepType === 'error_handler';
+  const isErrorHandler = data.stepType === 'error_handler';
   const isInbox = data.stepType === 'inbox';
 
   return (
@@ -313,8 +326,8 @@ export const WorkflowStepNode = memo(({ data, selected }: NodeProps<WorkflowStep
             className="!w-3 !h-3 !bg-red-500 !border-2 !border-white"
           />
           <div className="flex justify-between text-xs mt-2 text-gray-500 dark:text-gray-400">
-            <span className="text-green-600">Yes</span>
-            <span className="text-red-600">No</span>
+            <span className="text-green-600">{isErrorHandler ? 'No Error' : 'Yes'}</span>
+            <span className="text-red-600">{isErrorHandler ? 'On Error' : 'No'}</span>
           </div>
         </>
       ) : isInbox ? (
