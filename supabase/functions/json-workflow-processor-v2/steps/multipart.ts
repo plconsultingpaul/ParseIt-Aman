@@ -1,4 +1,4 @@
-import { getValueByPath } from "../utils.ts";
+import { getValueByPath, resolveAuthConfigLogin, persistAuthTokenToContext } from "../utils.ts";
 
 interface MultipartFormPart {
   name: string;
@@ -174,52 +174,18 @@ export async function executeMultipartFormUpload(
     }
   } else if (apiSourceType === 'auth_config' && config.authConfigId) {
     try {
-      const authConfigResponse = await fetch(`${supabaseUrl}/rest/v1/api_auth_config?select=*&id=eq.${config.authConfigId}`, {
-        headers: {
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'Content-Type': 'application/json',
-          'apikey': supabaseServiceKey
-        }
-      });
-
-      if (authConfigResponse.ok) {
-        const authConfigs = await authConfigResponse.json();
-        if (authConfigs && authConfigs.length > 0) {
-          const authConfig = authConfigs[0];
-
-          if (authConfig.login_endpoint && authConfig.username && authConfig.password) {
-            const loginResponse = await fetch(authConfig.login_endpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                username: authConfig.username,
-                password: authConfig.password
-              })
-            });
-
-            if (!loginResponse.ok) {
-              const errorText = await loginResponse.text().catch(() => '');
-              throw new Error(`Authentication login failed: ${loginResponse.status} ${errorText}`);
-            }
-
-            const loginData = await loginResponse.json();
-            authLoginData = loginData;
-            const tokenFieldName = authConfig.token_field_name || 'access_token';
-            authToken = getValueByPath(loginData, tokenFieldName) ?? loginData[tokenFieldName];
-
-            if (!authToken) {
-              throw new Error(`Login response missing '${tokenFieldName}' field`);
-            }
-            console.log(`[multipart auth] auth_config login OK. tokenField="${tokenFieldName}" tokenLen=${String(authToken).length}`);
-          } else {
-            console.warn('Auth config missing required fields (login_endpoint, username, password)');
-          }
-        }
-      }
+      const resolved = await resolveAuthConfigLogin(supabaseUrl, supabaseServiceKey, config.authConfigId);
+      authToken = resolved.authToken;
+      authLoginData = resolved.authLoginData;
+      console.log(`[multipart auth] auth_config login OK. tokenLen=${authToken.length}`);
     } catch (authConfigError) {
       console.error('Failed to authenticate:', authConfigError);
       throw authConfigError;
     }
+  }
+
+  if (authToken) {
+    persistAuthTokenToContext(contextData, authToken, authLoginData);
   }
 
   let url = config.url || '';
