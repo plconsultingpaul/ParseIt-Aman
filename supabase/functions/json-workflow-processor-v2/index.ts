@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { corsHeaders, getValueByPath, resolveUserResponseTemplate, createV2StepLog, updateV2ExecutionLog, buildEdgeMap, getNextNodeId } from "./utils.ts";
+import { corsHeaders, getValueByPath, resolveUserResponseTemplate, createV2StepLog, updateV2ExecutionLog, buildEdgeMap, getNextNodeId, findNextErrorHandler } from "./utils.ts";
 import { executeApiCall } from "./steps/api.ts";
 import { executeApiEndpoint } from "./steps/apiEndpoint.ts";
 import { executeRename } from "./steps/rename.ts";
@@ -520,6 +520,7 @@ Deno.serve(async (req: Request) => {
     }
     let lastApiResponse: any = null;
     let visitCount = 0;
+    let caughtError: any = contextData?.error?.caught ? contextData.error : null;
 
     while (currentNodeId) {
       visitCount++;
@@ -588,7 +589,16 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        if (node.step_type === 'api_call') {
+        if (node.step_type === 'error_handler') {
+          const reason = caughtError ? 'Error already handled upstream - passing through' : 'No error - skipped';
+          stepOutputData = { skipped: true, reason };
+          if (executionLogId) {
+            await createV2StepLog(supabaseUrl, supabaseServiceKey, executionLogId, requestData.workflowId, node, 'skipped', stepStartTime, new Date().toISOString(), Date.now() - stepStartMs, reason, { config: node.config_json }, stepOutputData, contextData);
+          }
+          currentNodeId = getNextNodeId(edgeMap, node.id, 'success');
+          continue;
+
+        } else if (node.step_type === 'api_call') {
           const apiResult = await executeApiCall(node, contextData);
           stepOutputData = apiResult.responseData;
           lastApiResponse = stepOutputData;
@@ -850,7 +860,28 @@ Deno.serve(async (req: Request) => {
             errorInputData = { config: node.config_json };
           }
           await createV2StepLog(supabaseUrl, supabaseServiceKey, executionLogId, requestData.workflowId, node, 'failed', stepStartTime, stepEndTime, stepDurationMs, stepError.message, errorInputData, errorOutputData, contextData);
+        }
 
+        const errorHandler = caughtError ? null : findNextErrorHandler(edgeMap, nodeMap, node.id);
+        if (errorHandler) {
+          caughtError = {
+            caught: true,
+            message: stepError.message,
+            stepName: node.label,
+            stepType: node.step_type,
+            stepId: node.id,
+            handlerName: errorHandler.label
+          };
+          contextData.error = caughtError;
+          if (executionLogId) {
+            const handlerTime = new Date().toISOString();
+            await createV2StepLog(supabaseUrl, supabaseServiceKey, executionLogId, requestData.workflowId, errorHandler, 'completed', handlerTime, handlerTime, 0, undefined, { config: errorHandler.config_json }, { errorCaught: true, error: caughtError }, contextData);
+          }
+          currentNodeId = getNextNodeId(edgeMap, errorHandler.id, 'failure');
+          continue;
+        }
+
+        if (executionLogId) {
           await updateV2ExecutionLog(supabaseUrl, supabaseServiceKey, executionLogId, {
             status: 'failed',
             error_message: stepError.message,
@@ -866,6 +897,18 @@ Deno.serve(async (req: Request) => {
       }
 
       currentNodeId = getNextNodeId(edgeMap, node.id, nextHandle);
+    }
+
+    if (caughtError) {
+      if (executionLogId) {
+        await updateV2ExecutionLog(supabaseUrl, supabaseServiceKey, executionLogId, {
+          status: 'failed',
+          error_message: caughtError.message,
+          context_data: contextData,
+          updated_at: new Date().toISOString()
+        });
+      }
+      throw new Error(caughtError.message);
     }
 
     if (executionLogId) {
