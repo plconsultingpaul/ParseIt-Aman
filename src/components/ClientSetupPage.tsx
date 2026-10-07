@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Building2, ClipboardList, FileText, Search, Receipt } from 'lucide-react';
+import { Users, Building2, ClipboardList, FileText, Search, Receipt, CreditCard } from 'lucide-react';
 import type { User, ExtractionType, TransformationType, Client } from '../types';
 import ClientManagementSettings from './settings/ClientManagementSettings';
 import ClientUsersManagementSettings from './settings/ClientUsersManagementSettings';
@@ -7,6 +7,7 @@ import OrderEntryConfigSettings from './settings/OrderEntryConfigSettings';
 import OrderEntrySubmissionsPage from './OrderEntrySubmissionsPage';
 import TrackTraceTemplatesSettings from './settings/TrackTraceTemplatesSettings';
 import InvoiceConfigSettings from './settings/InvoiceConfigSettings';
+import GuestPaymentSettings from './settings/GuestPaymentSettings';
 
 interface ClientSetupPageProps {
   currentUser: User;
@@ -19,7 +20,7 @@ interface ClientSetupPageProps {
   updateUserPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
 
-type ClientSetupTab = 'clients' | 'users' | 'orderEntry' | 'submissions' | 'trackTrace' | 'invoices';
+type ClientSetupTab = 'clients' | 'users' | 'orderEntry' | 'submissions' | 'trackTrace' | 'invoices' | 'guestPayment';
 
 export default function ClientSetupPage({
   currentUser,
@@ -50,7 +51,8 @@ export default function ClientSetupPage({
     ...(!isClientUser && hasSystemUserManagement ? [{ id: 'orderEntry' as ClientSetupTab, label: 'Order Entry', icon: ClipboardList, description: 'Configure order entry forms and API' }] : []),
     ...(!isClientUser && hasSystemUserManagement ? [{ id: 'submissions' as ClientSetupTab, label: 'Submissions', icon: FileText, description: 'View order entry submissions' }] : []),
     ...(!isClientUser && hasSystemUserManagement ? [{ id: 'trackTrace' as ClientSetupTab, label: 'Track & Trace', icon: Search, description: 'Manage Track & Trace templates' }] : []),
-    ...(!isClientUser && hasSystemUserManagement ? [{ id: 'invoices' as ClientSetupTab, label: 'Invoices', icon: Receipt, description: 'Configure invoice API and display' }] : [])
+    ...(!isClientUser && hasSystemUserManagement ? [{ id: 'invoices' as ClientSetupTab, label: 'Invoices', icon: Receipt, description: 'Configure invoice API and display' }] : []),
+    ...(!isClientUser && hasSystemUserManagement ? [{ id: 'guestPayment' as ClientSetupTab, label: 'Guest Payment', icon: CreditCard, description: 'Configure the public guest payment page and Stripe' }] : [])
   ];
 
   const renderTabContent = () => {
@@ -93,6 +95,10 @@ export default function ClientSetupPage({
       case 'invoices':
         return (!isClientUser && hasSystemUserManagement) ? (
           <InvoiceConfigSettings currentUser={currentUser} />
+        ) : <PermissionDenied />;
+      case 'guestPayment':
+        return (!isClientUser && hasSystemUserManagement) ? (
+          <GuestPaymentSettings />
         ) : <PermissionDenied />;
       default:
         return null;
