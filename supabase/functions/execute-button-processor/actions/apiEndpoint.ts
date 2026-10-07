@@ -2,6 +2,25 @@ import { getValueByPath, setValueByPath, replaceVariables } from "../utils/objec
 import { evaluateFunctionLogic } from "../utils/logic.ts";
 import { applyResponseTransformation } from "../utils/responseTransformation.ts";
 
+async function fetchCompanyTimezone(supabaseUrl: string, supabaseServiceKey: string): Promise<string> {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/company_branding?select=timezone&order=updated_at.desc&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows?.[0]?.timezone) return rows[0].timezone;
+    }
+  } catch (err) {
+    console.warn('[CompanyTimezone] Failed to fetch, defaulting to UTC:', err);
+  }
+  return 'UTC';
+}
+
 export async function executeApiEndpointSingle(
   config: any,
   contextData: any,
@@ -9,7 +28,8 @@ export async function executeApiEndpointSingle(
   authToken: string,
   rowData?: any,
   supabaseUrl?: string,
-  supabaseServiceKey?: string
+  supabaseServiceKey?: string,
+  companyTimezone: string = 'UTC'
 ): Promise<any> {
   const effectiveContext = rowData ? { ...contextData, execute: { ...contextData.execute, ...rowData } } : contextData;
 
@@ -95,7 +115,7 @@ export async function executeApiEndpointSingle(
           const func = functionsById[mapping.functionId];
           if (func && func.function_logic) {
             try {
-              finalValue = evaluateFunctionLogic(func.function_logic, effectiveContext.execute || effectiveContext);
+              finalValue = evaluateFunctionLogic(func.function_logic, effectiveContext.execute || effectiveContext, companyTimezone);
             } catch (funcErr) {
               console.error(`Error evaluating function for field "${mapping.fieldName}":`, funcErr);
               continue;
@@ -116,6 +136,8 @@ export async function executeApiEndpointSingle(
               finalValue = null;
             } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateValue)) {
               finalValue = `${dateValue}:00`;
+            } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateValue)) {
+              finalValue = dateValue;
             } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
               finalValue = `${dateValue}T00:00:00`;
             } else {
@@ -208,6 +230,8 @@ export async function executeApiEndpointSingle(
 export async function executeApiEndpoint(step: any, contextData: any, supabaseUrl: string, supabaseServiceKey: string): Promise<any> {
   const config = step.config_json || {};
 
+  const companyTimezone = await fetchCompanyTimezone(supabaseUrl, supabaseServiceKey);
+
   let baseUrl = '';
   let authToken = '';
   const apiSourceType = config.apiSourceType || 'main';
@@ -265,7 +289,7 @@ export async function executeApiEndpoint(step: any, contextData: any, supabaseUr
       requestBodyFieldMappings: adjustedFieldMappings
     };
 
-    const responseData = await executeApiEndpointSingle(singleArrayConfig, contextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey);
+    const responseData = await executeApiEndpointSingle(singleArrayConfig, contextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey, companyTimezone);
     applyResponseMappings(config, responseData, contextData);
     return responseData;
   }
@@ -329,7 +353,7 @@ export async function executeApiEndpoint(step: any, contextData: any, supabaseUr
           requestBodyFieldMappings: fieldMappings
         };
 
-        const responseData = await executeApiEndpointSingle(conditionalConfig, contextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey);
+        const responseData = await executeApiEndpointSingle(conditionalConfig, contextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey, companyTimezone);
         results.push({ index: i, success: true, data: responseData });
 
         if (i === 0) {
@@ -381,7 +405,7 @@ export async function executeApiEndpoint(step: any, contextData: any, supabaseUr
       }
 
       if (!Array.isArray(arrayData) || arrayData.length === 0) {
-        const responseData = await executeApiEndpointSingle(config, contextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey);
+        const responseData = await executeApiEndpointSingle(config, contextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey, companyTimezone);
         applyResponseMappings(config, responseData, contextData);
         return responseData;
       }
@@ -394,7 +418,7 @@ export async function executeApiEndpoint(step: any, contextData: any, supabaseUr
       for (let i = 0; i < arrayData.length; i++) {
         const rowData = arrayData[i];
         try {
-          const responseData = await executeApiEndpointSingle(config, contextData, baseUrl, authToken, rowData, supabaseUrl, supabaseServiceKey);
+          const responseData = await executeApiEndpointSingle(config, contextData, baseUrl, authToken, rowData, supabaseUrl, supabaseServiceKey, companyTimezone);
           results.push({ index: i, success: true, data: responseData });
 
           if (i === 0) {
@@ -663,7 +687,7 @@ export async function executeApiEndpoint(step: any, contextData: any, supabaseUr
         execute: { ...contextData.execute, [arrayParentPath]: rowResults },
         arrayData: rowResults
       };
-      const responseData = await executeApiEndpointSingle(batchConfig, batchContextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey);
+      const responseData = await executeApiEndpointSingle(batchConfig, batchContextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey, companyTimezone);
       applyResponseMappings(config, responseData, contextData);
 
       return {
@@ -694,7 +718,7 @@ export async function executeApiEndpoint(step: any, contextData: any, supabaseUr
     ? { ...contextData, execute: flattenedExecute }
     : contextData;
 
-  let responseData = await executeApiEndpointSingle(config, effectiveContextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey);
+  let responseData = await executeApiEndpointSingle(config, effectiveContextData, baseUrl, authToken, undefined, supabaseUrl, supabaseServiceKey, companyTimezone);
 
   let skipRemainingLoopSteps = false;
   if (config.responseTransformation?.enabled) {
@@ -714,6 +738,43 @@ export async function executeApiEndpoint(step: any, contextData: any, supabaseUr
 export function applyResponseMappings(config: any, responseData: any, contextData: any): void {
   const responseDataMappings = config.responseDataMappings || [];
   const responseReturnsArray = config.responseReturnsArray || false;
+  const responseArraySort: 'none' | 'asc' | 'desc' = config.responseArraySort || 'none';
+  const responseArraySortField: string = (config.responseArraySortField || '').trim();
+
+  const sortRecords = (arr: any[]): any[] => {
+    if (responseArraySort === 'none' || !Array.isArray(arr) || arr.length < 2) return arr;
+    const dir = responseArraySort === 'desc' ? -1 : 1;
+    const getKey = (item: any) => {
+      const raw = responseArraySortField
+        ? getValueByPath(item, responseArraySortField)
+        : item;
+      if (raw === null || raw === undefined) return null;
+      if (typeof raw === 'number') return raw;
+      if (raw instanceof Date) return raw.getTime();
+      if (typeof raw === 'string') {
+        const t = Date.parse(raw);
+        if (!Number.isNaN(t)) return t;
+        const n = Number(raw);
+        if (!Number.isNaN(n) && raw.trim() !== '') return n;
+        return raw;
+      }
+      return String(raw);
+    };
+    const sorted = [...arr];
+    sorted.sort((a, b) => {
+      const ka = getKey(a);
+      const kb = getKey(b);
+      if (ka === null && kb === null) return 0;
+      if (ka === null) return 1;
+      if (kb === null) return -1;
+      if (typeof ka === 'number' && typeof kb === 'number') return (ka - kb) * dir;
+      if (ka < kb) return -1 * dir;
+      if (ka > kb) return 1 * dir;
+      return 0;
+    });
+    return sorted;
+  };
+
   if (!contextData.response) {
     contextData.response = {};
   }
@@ -722,8 +783,9 @@ export function applyResponseMappings(config: any, responseData: any, contextDat
       let extractedValue = getValueByPath(responseData, mapping.responsePath);
       if (extractedValue === null || extractedValue === undefined) {
         for (const key of Object.keys(responseData || {})) {
-          const val = responseData[key];
-          if (Array.isArray(val) && val.length > 0) {
+          const rawVal = responseData[key];
+          if (Array.isArray(rawVal) && rawVal.length > 0) {
+            const val = sortRecords(rawVal);
             if (responseReturnsArray) {
               const allValues = val
                 .map((item: any) => getValueByPath(item, mapping.responsePath))
@@ -741,7 +803,9 @@ export function applyResponseMappings(config: any, responseData: any, contextDat
             }
           }
         }
-      } else if (responseReturnsArray && Array.isArray(extractedValue)) {
+      } else if (Array.isArray(extractedValue)) {
+        const sorted = sortRecords(extractedValue);
+        extractedValue = responseReturnsArray ? sorted : sorted[0];
       }
 
       if (extractedValue !== null && extractedValue !== undefined) {
