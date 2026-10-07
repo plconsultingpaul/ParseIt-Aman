@@ -6,8 +6,9 @@ export function executeConditionalCheck(node: any, contextData: any): any {
 
   const rawFieldPath = config.fieldPath || config.jsonPath || config.checkField || '';
   const fieldPath = rawFieldPath.replace(/^\{\{|\}\}$/g, '');
-  const operator = config.operator || config.conditionType || 'exists';
   const expectedValue = config.expectedValue;
+  const hasExpectedValue = expectedValue !== undefined && expectedValue !== null && expectedValue !== '';
+  const operator = config.operator || config.conditionType || (hasExpectedValue ? 'equals' : 'exists');
   const storeResultAs = config.storeResultAs || `condition_${node.id}_result`;
 
   console.log('Checking field path:', fieldPath);
