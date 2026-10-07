@@ -17,7 +17,7 @@ import 'reactflow/dist/style.css';
 import {
   ArrowLeft, Save, Plus, Globe, GitBranch, RefreshCw, Upload,
   Mail, FileText, Send, Loader2, Check, BrainCircuit, BookOpen, Camera, Copy,
-  AlertTriangle, MessageSquareText, Inbox, FileEdit,
+  AlertTriangle, MessageSquareText, Inbox, FileEdit, ShieldAlert,
 } from 'lucide-react';
 import { workflowV2NodeTypes } from './WorkflowV2FlowNodes';
 import WorkflowV2StepConfigPanel from './WorkflowV2StepConfigPanel';
@@ -56,6 +56,7 @@ const STEP_TYPE_OPTIONS: { type: WorkflowV2StepType; label: string; icon: React.
   { type: 'user_message', label: 'User Message', icon: <MessageSquareText className="h-3.5 w-3.5" />, color: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:hover:bg-yellow-900/60' },
   { type: 'inbox', label: 'Inbox Review', icon: <Inbox className="h-3.5 w-3.5" />, color: 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60' },
   { type: 'update_imaging_document', label: 'Update Imaging Document', icon: <FileEdit className="h-3.5 w-3.5" />, color: 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/40 dark:text-orange-300 dark:hover:bg-orange-900/60' },
+  { type: 'error_handler', label: 'Error Handler', icon: <ShieldAlert className="h-3.5 w-3.5" />, color: 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60' },
 ];
 
 function dbNodesToFlow(dbNodes: WorkflowV2Node[]): Node[] {
@@ -162,19 +163,20 @@ function WorkflowV2FlowDesignerInner({ workflowId, workflowName, workflowType, o
   };
 
   const onConnect = useCallback((params: Connection) => {
+    const isErrorHandler = nodes.find(n => n.id === params.source)?.data?.stepType === 'error_handler';
     const edgeStyle = {
       type: 'smoothstep' as const,
       animated: false,
       markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
       style: { strokeWidth: 2 },
-      label: params.sourceHandle === 'success' ? 'Yes'
-        : params.sourceHandle === 'failure' ? 'No'
+      label: params.sourceHandle === 'success' ? (isErrorHandler ? 'No Error' : 'Yes')
+        : params.sourceHandle === 'failure' ? (isErrorHandler ? 'On Error' : 'No')
         : params.sourceHandle === 'accept' ? 'Accept'
         : params.sourceHandle === 'reject' ? 'Reject'
         : undefined,
     };
     setEdges((eds) => addEdge({ ...params, ...edgeStyle }, eds));
-  }, [setEdges]);
+  }, [setEdges, nodes]);
 
   const addStepNode = useCallback((stepType: WorkflowV2StepType) => {
     counterRef.current += 1;
@@ -375,8 +377,8 @@ function WorkflowV2FlowDesignerInner({ workflowId, workflowName, workflowType, o
                     onClick={() => addStepNode(opt.type)}
                     className="w-full flex items-center space-x-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
-                    <span className={`p-1.5 rounded ${opt.color}`}>{opt.icon}</span>
-                    <span>{opt.label}</span>
+                    <span className={`p-1.5 rounded flex-shrink-0 ${opt.color}`}>{opt.icon}</span>
+                    <span className="text-left whitespace-nowrap">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -462,6 +464,8 @@ function WorkflowV2FlowDesignerInner({ workflowId, workflowName, workflowType, o
                   return '#f97316';
                 case 'read_email':
                   return '#0ea5e9';
+                case 'error_handler':
+                  return '#ef4444';
                 default:
                   return '#94a3b8';
               }
