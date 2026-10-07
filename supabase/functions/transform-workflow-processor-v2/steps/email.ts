@@ -1,6 +1,114 @@
 import { getValueByPath } from "../utils.ts";
 import { sendOffice365Email, sendGmailEmail, extractSpecificPageFromPdf } from "./emailProviders.ts";
 
+async function resolveEmailConfig(
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  sendingAccountId?: string | null
+): Promise<any> {
+  if (sendingAccountId) {
+    const acctResp = await fetch(
+      `${supabaseUrl}/rest/v1/email_sending_accounts?id=eq.${sendingAccountId}&limit=1`,
+      {
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseServiceKey
+        }
+      }
+    );
+    if (acctResp.ok) {
+      const rows = await acctResp.json();
+      if (rows && rows.length > 0) {
+        const a = rows[0];
+        console.log(`📧 Using sending account "${a.account_name}" (${a.provider})`);
+        return {
+          provider: a.provider,
+          office365: a.provider === 'office365' ? {
+            tenant_id: a.tenant_id,
+            client_id: a.client_id,
+            client_secret: a.client_secret,
+            default_send_from_email: a.from_email
+          } : undefined,
+          gmail: a.provider === 'gmail' ? {
+            client_id: a.gmail_client_id,
+            client_secret: a.gmail_client_secret,
+            refresh_token: a.gmail_refresh_token,
+            default_send_from_email: a.from_email
+          } : undefined
+        };
+      }
+      console.log('📧 sendingAccountId provided but no matching row; falling back to default provider');
+    } else {
+      console.log('📧 Failed to fetch sending account; falling back to default provider');
+    }
+  } else {
+    const defaultResp = await fetch(
+      `${supabaseUrl}/rest/v1/email_sending_accounts?is_default=eq.true&limit=1`,
+      {
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json',
+          'apikey': supabaseServiceKey
+        }
+      }
+    );
+    if (defaultResp.ok) {
+      const rows = await defaultResp.json();
+      if (rows && rows.length > 0) {
+        const a = rows[0];
+        console.log(`📧 Using default sending account "${a.account_name}" (${a.provider})`);
+        return {
+          provider: a.provider,
+          office365: a.provider === 'office365' ? {
+            tenant_id: a.tenant_id,
+            client_id: a.client_id,
+            client_secret: a.client_secret,
+            default_send_from_email: a.from_email
+          } : undefined,
+          gmail: a.provider === 'gmail' ? {
+            client_id: a.gmail_client_id,
+            client_secret: a.gmail_client_secret,
+            refresh_token: a.gmail_refresh_token,
+            default_send_from_email: a.from_email
+          } : undefined
+        };
+      }
+    }
+  }
+
+  const emailConfigResponse = await fetch(`${supabaseUrl}/rest/v1/email_monitoring_config?limit=1`, {
+    headers: {
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'Content-Type': 'application/json',
+      'apikey': supabaseServiceKey
+    }
+  });
+  if (!emailConfigResponse.ok) {
+    throw new Error('Email configuration not found');
+  }
+  const emailConfigData = await emailConfigResponse.json();
+  if (!emailConfigData || emailConfigData.length === 0) {
+    throw new Error('Email configuration not found');
+  }
+  const emailConfigRecord = emailConfigData[0];
+  return {
+    provider: emailConfigRecord.provider || 'office365',
+    office365: (emailConfigRecord.provider || 'office365') === 'office365' ? {
+      tenant_id: emailConfigRecord.tenant_id,
+      client_id: emailConfigRecord.client_id,
+      client_secret: emailConfigRecord.client_secret,
+      default_send_from_email: emailConfigRecord.default_send_from_email
+    } : undefined,
+    gmail: emailConfigRecord.provider === 'gmail' ? {
+      client_id: emailConfigRecord.gmail_client_id,
+      client_secret: emailConfigRecord.gmail_client_secret,
+      refresh_token: emailConfigRecord.gmail_refresh_token,
+      default_send_from_email: emailConfigRecord.default_send_from_email
+    } : undefined
+  };
+}
+
 function formatBodyAsHtml(body: string): string {
   if (!body) return '';
   if (/<\/?[a-z][\s\S]*?>/i.test(body)) return body;
@@ -228,37 +336,7 @@ export async function executeEmailAction(
   console.log('Attachment:', pdfAttachment ? pdfAttachment.filename : 'none');
   console.log('='.repeat(50));
 
-  const emailConfigResponse = await fetch(`${supabaseUrl}/rest/v1/email_monitoring_config?limit=1`, {
-    headers: {
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'Content-Type': 'application/json',
-      'apikey': supabaseServiceKey
-    }
-  });
-  if (!emailConfigResponse.ok) {
-    throw new Error('Email configuration not found');
-  }
-  const emailConfigData = await emailConfigResponse.json();
-  if (!emailConfigData || emailConfigData.length === 0) {
-    throw new Error('Email configuration not found');
-  }
-
-  const emailConfigRecord = emailConfigData[0];
-  const emailConfig: any = {
-    provider: emailConfigRecord.provider || 'office365',
-    office365: emailConfigRecord.provider === 'office365' ? {
-      tenant_id: emailConfigRecord.tenant_id,
-      client_id: emailConfigRecord.client_id,
-      client_secret: emailConfigRecord.client_secret,
-      default_send_from_email: emailConfigRecord.default_send_from_email
-    } : undefined,
-    gmail: emailConfigRecord.provider === 'gmail' ? {
-      client_id: emailConfigRecord.gmail_client_id,
-      client_secret: emailConfigRecord.gmail_client_secret,
-      refresh_token: emailConfigRecord.gmail_refresh_token,
-      default_send_from_email: emailConfigRecord.default_send_from_email
-    } : undefined
-  };
+  const emailConfig: any = await resolveEmailConfig(supabaseUrl, supabaseServiceKey, config.sendingAccountId);
 
   let emailResult;
   if (emailConfig.provider === 'office365') {
