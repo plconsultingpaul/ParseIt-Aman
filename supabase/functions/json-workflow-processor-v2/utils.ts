@@ -162,6 +162,70 @@ export async function updateV2ExecutionLog(
   }
 }
 
+export interface ResolvedAuthConfig {
+  authToken: string;
+  authLoginData: any;
+}
+
+export async function resolveAuthConfigLogin(
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  authConfigId: string
+): Promise<ResolvedAuthConfig> {
+  const cfgResp = await fetch(
+    `${supabaseUrl}/rest/v1/api_auth_config?select=*&id=eq.${authConfigId}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'Content-Type': 'application/json',
+        'apikey': supabaseServiceKey
+      }
+    }
+  );
+  if (!cfgResp.ok) {
+    throw new Error(`Failed to load auth config: ${cfgResp.status}`);
+  }
+  const rows = await cfgResp.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error('Auth config not found');
+  }
+  const cfg = rows[0];
+  if (!cfg.login_endpoint || !cfg.username || !cfg.password) {
+    throw new Error('Auth config missing required fields (login_endpoint, username, password)');
+  }
+  const loginResp = await fetch(cfg.login_endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: cfg.username, password: cfg.password })
+  });
+  if (!loginResp.ok) {
+    const errText = await loginResp.text().catch(() => '');
+    throw new Error(`Authentication login failed: ${loginResp.status} ${errText}`);
+  }
+  const loginData = await loginResp.json();
+  const tokenField = cfg.token_field_name || 'access_token';
+  const token = getValueByPath(loginData, tokenField) ?? loginData[tokenField];
+  if (!token) {
+    throw new Error(`Login response missing '${tokenField}' field`);
+  }
+  return { authToken: String(token), authLoginData: loginData };
+}
+
+export function persistAuthTokenToContext(
+  contextData: any,
+  authToken: string,
+  authLoginData: any
+): void {
+  if (!authToken) return;
+  contextData.authToken = authToken;
+  contextData.authResponse = authLoginData;
+  const existing = (contextData.response && typeof contextData.response === 'object')
+    ? contextData.response
+    : {};
+  const loginObj = (authLoginData && typeof authLoginData === 'object') ? authLoginData : {};
+  contextData.response = { ...existing, ...loginObj, access_token: authToken };
+}
+
 export function buildEdgeMap(edges: any[]): Map<string, any[]> {
   const map = new Map<string, any[]>();
   for (const edge of edges) {
@@ -186,6 +250,30 @@ export function getNextNodeId(edgeMap: Map<string, any[]>, sourceNodeId: string,
     if (defaultEdges && defaultEdges.length > 0) {
       return defaultEdges[0].target_node_id;
     }
+  }
+  return null;
+}
+
+export function findNextErrorHandler(edgeMap: Map<string, any[]>, nodeMap: Map<string, any>, fromNodeId: string): any | null {
+  const outgoing = (id: string): string[] => {
+    const targets: string[] = [];
+    for (const [key, edges] of edgeMap) {
+      if (key.startsWith(`${id}::`)) {
+        for (const e of edges) targets.push(e.target_node_id);
+      }
+    }
+    return targets;
+  };
+  const visited = new Set<string>([fromNodeId]);
+  const queue = outgoing(fromNodeId);
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    const node = nodeMap.get(id);
+    if (!node) continue;
+    if (node.step_type === 'error_handler') return node;
+    queue.push(...outgoing(id));
   }
   return null;
 }
