@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Trash2, FileText, AlertCircle, Info, List, Braces, Repeat, Layers, ExternalLink, Filter, Code, X } from 'lucide-react';
+import { Plus, Trash2, FileText, AlertCircle, Info, List, Braces, Repeat, Layers, ExternalLink, Filter, Code, X, Play } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import Select from '../../common/Select';
 import CustomDropdown from '../../common/CustomDropdown';
 import VariableDropdown from '../workflow/VariableDropdown';
 import SpecFieldDropdown, { type SpecFieldDropdownHandle } from '../workflow/SpecFieldDropdown';
 import { FieldMappingFunctionsManager } from '../FieldMappingFunctionsManager';
+import V2ApiEndpointTestModal from './V2ApiEndpointTestModal';
 import type { ApiSpecEndpoint, FieldMappingFunction } from '../../../types';
 
 interface QueryParameter {
@@ -94,6 +95,7 @@ export default function V2ApiEndpointConfig({
   const buttonRefs = useRef<Record<string, React.RefObject<HTMLButtonElement>>>({});
   const specFieldRefs = useRef<Record<string, SpecFieldDropdownHandle | null>>({});
   const isRestoringRef = useRef(true);
+  const [showTestModal, setShowTestModal] = useState(false);
 
   const sourceType = config.apiSourceType || 'main';
   const httpMethod = config.httpMethod || 'POST';
@@ -317,8 +319,24 @@ export default function V2ApiEndpointConfig({
       }
       if (node.data?.stepType === 'read_email' && Array.isArray(nodeConfig.emailFieldMappings)) {
         nodeConfig.emailFieldMappings.forEach((m: any) => {
-          if (m.fieldName) {
-            variables.push({ name: m.fieldName, stepName: nodeName, source: 'workflow', dataType: m.dataType || 'string' });
+          if (!m.fieldName) return;
+          const isArray = m.type === 'array' || m.dataType === 'array';
+          variables.push({
+            name: m.fieldName,
+            stepName: nodeName,
+            source: 'workflow',
+            dataType: isArray ? 'array' : (m.dataType || 'string'),
+          });
+          if (isArray && Array.isArray(m.subFields)) {
+            m.subFields.forEach((sf: any) => {
+              if (!sf?.fieldName) return;
+              variables.push({
+                name: sf.fieldName,
+                stepName: `${nodeName} → ${m.fieldName} row`,
+                source: 'workflow',
+                dataType: sf.dataType || 'string',
+              });
+            });
           }
         });
       }
@@ -440,6 +458,25 @@ export default function V2ApiEndpointConfig({
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => setShowTestModal(true)}
+          className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors"
+          title="Test this API Endpoint step"
+        >
+          <Play className="w-3.5 h-3.5" />
+          <span>Test</span>
+        </button>
+      </div>
+      {showTestModal && (
+        <V2ApiEndpointTestModal
+          isOpen={showTestModal}
+          onClose={() => setShowTestModal(false)}
+          config={config}
+          stepId={currentNodeId}
+        />
+      )}
       {/* API Source */}
       <div>
         <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">API Source</label>
@@ -509,8 +546,16 @@ export default function V2ApiEndpointConfig({
             ]}
             size="sm"
           />
+          <div className="mt-2 flex items-start space-x-1.5 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+            <Info className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <p className="text-[11px] leading-snug text-blue-900 dark:text-blue-100">
+              This step will call the Auth Config's login endpoint and expose the login response. Use <span className="font-medium">Response Data Mappings</span> below to pull the token out — typically the <span className="font-medium">From</span> path is the same value as the Token Field Name configured on the Auth Config (e.g. <code className="font-mono">token.access_token</code>). No HTTP request or request body is sent for this step.
+            </p>
+          </div>
         </div>
       )}
+
+      {sourceType !== 'auth_config' && (<>
 
       {/* HTTP Method */}
       <div>
@@ -875,6 +920,93 @@ export default function V2ApiEndpointConfig({
         )}
       </div>
 
+      {/* Custom Headers */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">Custom Headers</label>
+          <button
+            type="button"
+            onClick={() => {
+              const headers = config.additionalHeaders || {};
+              const newKey = `Header-${Object.keys(headers).length + 1}`;
+              updateConfig('additionalHeaders', { ...headers, [newKey]: '' });
+            }}
+            className="flex items-center px-2 py-0.5 text-[10px] bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            <Plus className="w-3 h-3 mr-0.5" />
+            Add Header
+          </button>
+        </div>
+        {config.additionalHeaders && Object.keys(config.additionalHeaders).length > 0 && (
+          <div className="space-y-2">
+            {Object.entries(config.additionalHeaders || {}).map(([headerKey, headerValue]: [string, any], idx: number) => (
+              <div key={idx} className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={headerKey}
+                  onChange={(e) => {
+                    const entries = Object.entries(config.additionalHeaders || {});
+                    const updated: Record<string, string> = {};
+                    entries.forEach(([k, v]: [string, any], i: number) => {
+                      updated[i === idx ? e.target.value : k] = String(v);
+                    });
+                    updateConfig('additionalHeaders', updated);
+                  }}
+                  className="w-1/3 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Header name"
+                />
+                <input
+                  type="text"
+                  value={String(headerValue)}
+                  onChange={(e) => {
+                    updateConfig('additionalHeaders', { ...config.additionalHeaders, [headerKey]: e.target.value });
+                  }}
+                  className="flex-1 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Value or {{variable}}"
+                />
+                <button
+                  ref={getButtonRef(`custom-header-${idx}`)}
+                  type="button"
+                  onClick={() => setOpenVariableDropdown(openVariableDropdown === `custom-header-${idx}` ? null : `custom-header-${idx}`)}
+                  className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                  title="Insert variable"
+                >
+                  <Braces className="w-3.5 h-3.5" />
+                </button>
+                <VariableDropdown
+                  isOpen={openVariableDropdown === `custom-header-${idx}`}
+                  onClose={() => setOpenVariableDropdown(null)}
+                  triggerRef={getButtonRef(`custom-header-${idx}`)}
+                  variables={getAvailableVariables()}
+                  onSelect={(varName) => {
+                    const current = String(config.additionalHeaders?.[headerKey] ?? '');
+                    updateConfig('additionalHeaders', {
+                      ...config.additionalHeaders,
+                      [headerKey]: current ? `${current}{{${varName}}}` : `{{${varName}}}`,
+                    });
+                    setOpenVariableDropdown(null);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = { ...config.additionalHeaders };
+                    delete updated[headerKey];
+                    updateConfig('additionalHeaders', updated);
+                  }}
+                  className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-[10px] text-gray-500 dark:text-gray-400">
+          Add custom request headers. Use {`{{variable}}`} to reference values from prior steps (e.g. {`{{response.access_token}}`} after an Auth Config login). A custom Authorization / Access-Token / Token header will override the built-in Bearer token.
+        </p>
+      </div>
+
       {/* Request Body Template */}
       {(httpMethod === 'POST' || httpMethod === 'PUT' || httpMethod === 'PATCH') && (
         <div className="space-y-2">
@@ -1104,6 +1236,99 @@ export default function V2ApiEndpointConfig({
           size="sm"
         />
 
+        <div className="flex items-start space-x-2 p-1.5 bg-white dark:bg-gray-800 rounded border border-orange-200 dark:border-orange-700">
+          <input
+            type="checkbox"
+            id="wrapBodyInArrayToggle"
+            checked={config.wrapBodyInArray || false}
+            disabled={!!(config.collectRowsIntoField && String(config.collectRowsIntoField).trim())}
+            onChange={(e) => updateConfig('wrapBodyInArray', e.target.checked)}
+            className="mt-0.5 rounded border-orange-300 dark:border-orange-600 disabled:opacity-50"
+          />
+          <label htmlFor="wrapBodyInArrayToggle" className="text-xs text-gray-700 dark:text-gray-200">
+            <span className="font-medium">Wrap request body in array</span>
+            <span className="block text-[10px] text-gray-500 dark:text-gray-400">
+              Sends the final JSON body wrapped as <code>[ body ]</code>. Use this when the endpoint expects a JSON array (e.g. sending a Read Email array like <code>{'{{routes}}'}</code>).
+            </span>
+            {!!(config.collectRowsIntoField && String(config.collectRowsIntoField).trim()) && (
+              <span className="block text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">Disabled while "Collect rows into a named body field" is active.</span>
+            )}
+          </label>
+        </div>
+
+        {config.wrapBodyInArray && (
+          <div className="p-2 bg-white dark:bg-gray-800 rounded border border-orange-200 dark:border-orange-700 space-y-1">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-200">
+              Array Source Path — iterate rows from (optional)
+            </label>
+            <input
+              type="text"
+              value={config.arraySourcePath || ''}
+              onChange={(e) => updateConfig('arraySourcePath', e.target.value)}
+              placeholder="e.g. insertTlsRoutes"
+              className="w-full px-2 py-1 text-xs border border-orange-300 dark:border-orange-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+            />
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              Name of a Read Email array in the workflow data. When set, the Request Body is used as a per-row template: one object is built for each row, and the row's fields (e.g. <code>{'{{P_LOAD_REFERENCE}}'}</code>) are substituted in. Leave empty to just wrap the single body once.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-start space-x-2 p-1.5 bg-white dark:bg-gray-800 rounded border border-orange-200 dark:border-orange-700">
+          <input
+            type="checkbox"
+            id="collectRowsIntoFieldToggle"
+            checked={!!(config.collectRowsIntoField && String(config.collectRowsIntoField).trim())}
+            disabled={!!config.wrapBodyInArray}
+            onChange={(e) => updateConfig('collectRowsIntoField', e.target.checked ? (config.collectRowsIntoField || 'inputs') : '')}
+            className="mt-0.5 rounded border-orange-300 dark:border-orange-600 disabled:opacity-50"
+          />
+          <label htmlFor="collectRowsIntoFieldToggle" className="text-xs text-gray-700 dark:text-gray-200">
+            <span className="font-medium">Collect rows into a named body field</span>
+            <span className="block text-[10px] text-gray-500 dark:text-gray-400">
+              Builds ONE body object and places every source row inside an inner array field (e.g. <code>inputs</code>). Field mappings prefixed with the target field name (e.g. <code>inputs.P_LOAD_REFERENCE</code>) are applied per row; hardcoded mappings like <code>inputs.P_STATUS = "New"</code> are injected into every row.
+            </span>
+            {!!config.wrapBodyInArray && (
+              <span className="block text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">Disabled while "Wrap request body in array" is active.</span>
+            )}
+          </label>
+        </div>
+
+        {!!(config.collectRowsIntoField && String(config.collectRowsIntoField).trim()) && (
+          <div className="p-2 bg-white dark:bg-gray-800 rounded border border-orange-200 dark:border-orange-700 space-y-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200">
+                Target Field (inside body) — where rows are collected
+              </label>
+              <input
+                type="text"
+                value={config.collectRowsIntoField || ''}
+                onChange={(e) => updateConfig('collectRowsIntoField', e.target.value)}
+                placeholder="e.g. inputs"
+                className="w-full px-2 py-1 text-xs border border-orange-300 dark:border-orange-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              />
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                Dotted path is allowed (e.g. <code>payload.rows</code>). The body's Request Body Template should contain this key set to <code>[]</code>, e.g. <code>{'{"name":"insertTlsRoutes","inputs":[]}'}</code>.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200">
+                Array Source Path — rows to collect
+              </label>
+              <input
+                type="text"
+                value={config.arraySourcePath || ''}
+                onChange={(e) => updateConfig('arraySourcePath', e.target.value)}
+                placeholder="e.g. extractedData.insertTlsRoutes"
+                className="w-full px-2 py-1 text-xs border border-orange-300 dark:border-orange-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+              />
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                Path to the array of rows in workflow data (typically a Read Email extracted array).
+              </p>
+            </div>
+          </div>
+        )}
+
         {arrayProcessingMode !== 'none' && arrayProcessingMode !== 'single_array' && arrayProcessingMode !== 'conditional_hardcode' && (
           <div className="space-y-2">
             <div>
@@ -1126,15 +1351,6 @@ export default function V2ApiEndpointConfig({
                     className="rounded border-orange-300 dark:border-orange-600"
                   />
                   <label className="text-xs text-orange-800 dark:text-orange-200">Stop on first error</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={config.wrapBodyInArray || false}
-                    onChange={(e) => updateConfig('wrapBodyInArray', e.target.checked)}
-                    className="rounded border-orange-300 dark:border-orange-600"
-                  />
-                  <label className="text-xs text-orange-800 dark:text-orange-200">Wrap request body in array</label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <input
@@ -1428,6 +1644,7 @@ export default function V2ApiEndpointConfig({
           </div>
         </div>
       )}
+      </>)}
 
       {/* Response Data Mappings */}
       {!hideArrayAndMappingSections && <div className="space-y-2">
