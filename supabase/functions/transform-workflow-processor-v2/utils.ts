@@ -189,3 +189,27 @@ export function getNextNodeId(edgeMap: Map<string, any[]>, sourceNodeId: string,
   }
   return null;
 }
+
+export function findNextErrorHandler(edgeMap: Map<string, any[]>, nodeMap: Map<string, any>, fromNodeId: string): any | null {
+  const outgoing = (id: string): string[] => {
+    const targets: string[] = [];
+    for (const [key, edges] of edgeMap) {
+      if (key.startsWith(`${id}::`)) {
+        for (const e of edges) targets.push(e.target_node_id);
+      }
+    }
+    return targets;
+  };
+  const visited = new Set<string>([fromNodeId]);
+  const queue = outgoing(fromNodeId);
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    const node = nodeMap.get(id);
+    if (!node) continue;
+    if (node.step_type === 'error_handler') return node;
+    queue.push(...outgoing(id));
+  }
+  return null;
+}
