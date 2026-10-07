@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, Braces, HelpCircle, LogOut, Sparkles, FileText, AlertCircle, TextCursorInput, Info, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import Select from '../../common/Select';
+import CustomDropdown from '../../common/CustomDropdown';
 import ApiEndpointConfigSection from './ApiEndpointConfigSection';
 import VariableDropdown from './VariableDropdown';
 import { supabase } from '../../../lib/supabase';
@@ -204,6 +205,8 @@ export default function StepConfigForm({ step, allSteps, apiConfig, onSave, onCa
   const [infoContinueButtonLabelEs, setInfoContinueButtonLabelEs] = useState('');
   const [forEachSourceArray, setForEachSourceArray] = useState('');
   const [forEachItemVariable, setForEachItemVariable] = useState('item');
+  const [forEachLoopMode, setForEachLoopMode] = useState<'array' | 'count'>('array');
+  const [forEachCountPath, setForEachCountPath] = useState('');
   const [userSelectionSourceArray, setUserSelectionSourceArray] = useState('');
   const [userSelectionItemVariable, setUserSelectionItemVariable] = useState('item');
   const [userSelectionDisplayTemplate, setUserSelectionDisplayTemplate] = useState('');
@@ -491,6 +494,8 @@ export default function StepConfigForm({ step, allSteps, apiConfig, onSave, onCa
 
         setForEachSourceArray(config.sourceArray || '');
         setForEachItemVariable(config.itemVariable || 'item');
+        setForEachLoopMode(config.loopMode === 'count' ? 'count' : 'array');
+        setForEachCountPath(config.countPath || '');
 
         setUserSelectionSourceArray(config.sourceArray || '');
         setUserSelectionItemVariable(config.itemVariable || 'item');
@@ -1035,8 +1040,10 @@ export default function StepConfigForm({ step, allSteps, apiConfig, onSave, onCa
         break;
       case 'for_each':
         config = {
-          sourceArray: forEachSourceArray,
+          sourceArray: forEachLoopMode === 'array' ? forEachSourceArray : '',
           itemVariable: forEachItemVariable || 'item',
+          loopMode: forEachLoopMode,
+          countPath: forEachLoopMode === 'count' ? forEachCountPath : undefined,
         };
         break;
       case 'user_selection':
@@ -1418,40 +1425,96 @@ export default function StepConfigForm({ step, allSteps, apiConfig, onSave, onCa
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Source Array Path
+                    Loop Mode
                   </label>
-                  <div className="relative flex items-center space-x-2">
-                    <input
-                      type="text"
-                      value={forEachSourceArray}
-                      onChange={(e) => setForEachSourceArray(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500 dark:bg-gray-700 dark:text-gray-100 font-mono text-sm"
-                      placeholder="response.data.trips"
-                    />
-                    <button
-                      ref={getButtonRef('foreach-source-array')}
-                      type="button"
-                      onClick={() => setOpenVariableDropdown(openVariableDropdown === 'foreach-source-array' ? null : 'foreach-source-array')}
-                      className="px-3 py-2 bg-lime-600 hover:bg-lime-700 text-white rounded-md transition-colors"
-                      title="Insert variable"
-                    >
-                      <Braces className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <VariableDropdown
-                    isOpen={openVariableDropdown === 'foreach-source-array'}
-                    onClose={() => setOpenVariableDropdown(null)}
-                    triggerRef={getButtonRef('foreach-source-array')}
-                    variables={getForEachArrayVariables()}
-                    onSelect={(variableName) => {
-                      setForEachSourceArray(variableName);
-                      setOpenVariableDropdown(null);
-                    }}
+                  <CustomDropdown
+                    value={forEachLoopMode}
+                    onChange={(v) => setForEachLoopMode(v as 'array' | 'count')}
+                    options={[
+                      { value: 'array', label: 'Iterate Over Array' },
+                      { value: 'count', label: 'Repeat N Times (from a number field)' },
+                    ]}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Path to the array in the context data (e.g., <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">response.data.trips</code>)
+                    Choose <strong>Iterate Over Array</strong> to loop through each item in an array, or <strong>Repeat N Times</strong> to loop the number of times a previous step's numeric field specifies.
                   </p>
                 </div>
+
+                {forEachLoopMode === 'array' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Source Array Path
+                    </label>
+                    <div className="relative flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={forEachSourceArray}
+                        onChange={(e) => setForEachSourceArray(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500 dark:bg-gray-700 dark:text-gray-100 font-mono text-sm"
+                        placeholder="response.data.trips"
+                      />
+                      <button
+                        ref={getButtonRef('foreach-source-array')}
+                        type="button"
+                        onClick={() => setOpenVariableDropdown(openVariableDropdown === 'foreach-source-array' ? null : 'foreach-source-array')}
+                        className="px-3 py-2 bg-lime-600 hover:bg-lime-700 text-white rounded-md transition-colors"
+                        title="Insert variable"
+                      >
+                        <Braces className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <VariableDropdown
+                      isOpen={openVariableDropdown === 'foreach-source-array'}
+                      onClose={() => setOpenVariableDropdown(null)}
+                      triggerRef={getButtonRef('foreach-source-array')}
+                      variables={getForEachArrayVariables()}
+                      onSelect={(variableName) => {
+                        setForEachSourceArray(variableName);
+                        setOpenVariableDropdown(null);
+                      }}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Path to the array in the context data (e.g., <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">response.data.trips</code>)
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Count Field Path
+                    </label>
+                    <div className="relative flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={forEachCountPath}
+                        onChange={(e) => setForEachCountPath(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500 dark:bg-gray-700 dark:text-gray-100 font-mono text-sm"
+                        placeholder="execute.labelCount"
+                      />
+                      <button
+                        ref={getButtonRef('foreach-count-path')}
+                        type="button"
+                        onClick={() => setOpenVariableDropdown(openVariableDropdown === 'foreach-count-path' ? null : 'foreach-count-path')}
+                        className="px-3 py-2 bg-lime-600 hover:bg-lime-700 text-white rounded-md transition-colors"
+                        title="Insert variable"
+                      >
+                        <Braces className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <VariableDropdown
+                      isOpen={openVariableDropdown === 'foreach-count-path'}
+                      onClose={() => setOpenVariableDropdown(null)}
+                      triggerRef={getButtonRef('foreach-count-path')}
+                      variables={getAvailableVariables()}
+                      onSelect={(variableName) => {
+                        setForEachCountPath(variableName);
+                        setOpenVariableDropdown(null);
+                      }}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Path to a number entered in a previous step (e.g., <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">execute.labelCount</code>). The loop body runs that many times. Values are clamped between 0 and 1000. Inside the loop, <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">{`{{forEach.${forEachItemVariable || 'item'}}}`}</code> is the current iteration number (1-based).
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1465,7 +1528,11 @@ export default function StepConfigForm({ step, allSteps, apiConfig, onSave, onCa
                     placeholder="item"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Each array element will be accessible as <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">{`{{forEach.${forEachItemVariable || 'item'}.fieldName}}`}</code> in child steps
+                    {forEachLoopMode === 'array' ? (
+                      <>Each array element will be accessible as <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">{`{{forEach.${forEachItemVariable || 'item'}.fieldName}}`}</code> in child steps</>
+                    ) : (
+                      <>The iteration number will be accessible as <code className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">{`{{forEach.${forEachItemVariable || 'item'}}}`}</code> in child steps</>
+                    )}
                   </p>
                 </div>
               </div>
