@@ -305,7 +305,8 @@ export async function fetchCompanyBranding(): Promise<CompanyBranding> {
         clientLoginCompanyName: branding.client_login_company_name || '',
         loginLogoSize: branding.login_logo_size || 80,
         appBaseUrl: branding.app_base_url || '',
-        trainingVideoLink: branding.training_video_link || ''
+        trainingVideoLink: branding.training_video_link || '',
+        timezone: branding.timezone || 'UTC'
       };
     }
 
@@ -321,7 +322,8 @@ export async function fetchCompanyBranding(): Promise<CompanyBranding> {
       clientLoginCompanyName: '',
       loginLogoSize: 80,
       appBaseUrl: '',
-      trainingVideoLink: ''
+      trainingVideoLink: '',
+      timezone: 'UTC'
     };
   } catch (error) {
     console.error('[fetchCompanyBranding] Error fetching company branding:', error);
@@ -347,6 +349,7 @@ export async function updateCompanyBranding(branding: CompanyBranding): Promise<
       login_logo_size: branding.loginLogoSize || 80,
       app_base_url: branding.appBaseUrl || '',
       training_video_link: branding.trainingVideoLink || null,
+      timezone: branding.timezone || 'UTC',
       updated_at: new Date().toISOString()
     };
 
