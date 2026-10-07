@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, Eye, EyeOff, Building2, MapPin, Upload, DollarSign, Receipt, ArrowRight } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, Building2, MapPin, Upload, DollarSign, Receipt, ArrowRight, CreditCard } from 'lucide-react';
 import Threads from './common/Threads';
 import GradientText from './common/GradientText';
 import ForgotCredentialsModal from './auth/ForgotCredentialsModal';
@@ -280,6 +280,14 @@ export default function ClientLoginPage({ companyBranding, onLogin, sessionExpir
                     </>
                   )}
                 </button>
+
+                <a
+                  href="/guest-payment"
+                  className="w-full py-3.5 px-4 bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-700 font-semibold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+                >
+                  <CreditCard className="h-5 w-5" />
+                  <span>Make Payment as Guest</span>
+                </a>
               </form>
             </div>
           </div>
