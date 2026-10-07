@@ -200,10 +200,11 @@ export interface PromptConfig {
   arraySplitConfigs: ArraySplitConfig[];
   arrayEntryConfigs: ArrayEntryConfig[];
   hasWFOFields: boolean;
+  singlePageContext?: { pageNumber: number; totalPages: number };
 }
 
 export function buildExtractionPrompt(config: PromptConfig): string {
-  const { extractionType, fieldMappings, arraySplitConfigs, arrayEntryConfigs, hasWFOFields } = config;
+  const { extractionType, fieldMappings, arraySplitConfigs, arrayEntryConfigs, hasWFOFields, singlePageContext } = config;
 
   const fullInstructions = extractionType.default_instructions;
   const isJsonFormat = extractionType.format_type === 'JSON';
@@ -225,8 +226,16 @@ export function buildExtractionPrompt(config: PromptConfig): string {
     traceTypeInstructions = `\n\nTRACE TYPE MAPPING:\n- "${extractionType.trace_type_mapping}": Always set this field to the exact value "${extractionType.trace_type_value}".\n`;
   }
 
+  const pageScopeHeader = singlePageContext
+    ? `\n\nPAGE SCOPE:\nYou are analyzing a single page (page ${singlePageContext.pageNumber} of ${singlePageContext.totalPages}) extracted from a larger document. Extract information ONLY from the content visible on THIS page. Do not guess or infer values that are not visible here.`
+    : '';
+
+  const emptyValueRule = isJsonFormat
+    ? 'If a field is not found in JSON format, use empty string ("") for text fields, 0 for numbers, null for optional fields, and [] for arrays. For datetime fields that are empty or not found, use null (do NOT invent a date). For XML format, use "N/A" or leave it empty.'
+    : 'If a field is not found, use "N/A" or leave the XML element empty. Do NOT invent values that are not visible in the document.';
+
   return `
-You are a data extraction AI. Please analyze the provided PDF document and extract the requested information according to the following instructions:
+You are a data extraction AI. Please analyze the provided PDF document and extract the requested information according to the following instructions:${pageScopeHeader}
 
 EXTRACTION INSTRUCTIONS:
 ${fullInstructions}${fieldMappingInstructions}${parseitIdInstructions}${traceTypeInstructions}${arraySplitInstructions}${arrayEntryExtractionInstructions}${wfoInstructions}${isJsonFormat ? postalCodeRules : ''}
@@ -236,16 +245,16 @@ ${hasWFOFields ? 'You need to extract TWO separate data structures from the PDF:
 ${extractionType.xml_format}${hasWFOFields ? '\n\n2. WORKFLOW-ONLY DATA:\nProvide the workflow-only fields as a separate JSON object with the field names as keys and their extracted values.\n\nIMPORTANT: Return BOTH structures in a wrapper object like this:\n{\n  "templateData": <your extracted template data here>,\n  "workflowOnlyData": {\n    <workflow field name>: <extracted value>,\n    ...\n  }\n}\n\nIf there are no workflow-only fields, set workflowOnlyData to an empty object {}.' : ''}
 
 IMPORTANT GUIDELINES:
-1. Only extract information that is clearly visible in the document
+1. Only extract information that is clearly visible in the document${singlePageContext ? ' on THIS page' : ''}. Never fabricate, guess, or infer values that are not visible.
 2. CRITICAL: Follow the EXACT structure provided in the template. Do not add extra fields at the root level or change the nesting structure
-3. If a field is not found in JSON format, use empty string ("") for text fields, 0 for numbers, null for fields that should be null, or [] for arrays. For datetime fields that are empty, use today's date in yyyy-MM-ddThh:mm:ss format. For XML format, use "N/A" or leave it empty
+3. ${emptyValueRule}
 4. Maintain the exact ${outputFormat} structure provided and preserve exact case for all hardcoded values
 5. Do NOT duplicate fields outside of their proper nested structure
 6. ${isJsonFormat ? 'Ensure valid JSON syntax with proper quotes and brackets' : 'Ensure all XML tags are properly closed'}
-7. Use appropriate data types (dates, numbers, text). For JSON, ensure empty values are represented as empty strings (""), not "N/A". CRITICAL: For hardcoded values, use the EXACT case as specified (e.g., "True" not "true", "False" not "false"). For datetime fields, use the format yyyy-MM-ddThh:mm:ss (e.g., "2024-03-15T14:30:00"). If a datetime field is empty or not found, use today's date and current time in the same format. CRITICAL: For all string data type fields (dataType="string"), convert the extracted value to UPPER CASE before including it in the output
-8. Be precise and accurate with the extracted data
-9. ${isJsonFormat ? 'CRITICAL: For JSON output, the ONLY top-level key allowed is "orders". Do NOT include any other top-level keys or duplicate fields at the root level. Return ONLY the JSON structure from the template - no additional fields outside the "orders" array.' : 'CRITICAL FOR XML: Your response MUST start with the opening tag of the root element from the template and end with its closing tag. Do NOT include any XML content outside of this structure. Do NOT duplicate any elements or add extra XML blocks after the main structure. Return ONLY the complete XML structure from the template with no additional content before or after it.'}
+7. Use appropriate data types (dates, numbers, text). For JSON, ensure empty values are represented as empty strings (""), not "N/A". CRITICAL: For hardcoded values, use the EXACT case as specified (e.g., "True" not "true", "False" not "false"). For datetime fields that ARE present, use the format yyyy-MM-ddThh:mm:ss (e.g., "2024-03-15T14:30:00"). If a datetime field is empty or not found, use null - do NOT substitute today's date. CRITICAL: For all string data type fields (dataType="string"), convert the extracted value to UPPER CASE before including it in the output
+8. Be precise and accurate with the extracted data. Numbers must match the document character-for-character.
+9. ${isJsonFormat ? 'CRITICAL: Return ONLY the JSON structure from the template - no additional fields outside it, no wrapper keys not shown above, no duplicated fields at the root level.' : 'CRITICAL FOR XML: Your response MUST start with the opening tag of the root element from the template and end with its closing tag. Do NOT include any XML content outside of this structure. Do NOT duplicate any elements or add extra XML blocks after the main structure. Return ONLY the complete XML structure from the template with no additional content before or after it.'}
 
-Please provide only the ${outputFormat} output without any additional explanation or formatting.
+Please provide only the ${outputFormat} output without any additional explanation, prose, or markdown code fences.
 `;
 }
