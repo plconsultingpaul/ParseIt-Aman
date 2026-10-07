@@ -587,7 +587,7 @@ export interface WorkflowV2 {
   updatedAt?: string;
 }
 
-export type WorkflowV2StepType = 'api_call' | 'api_endpoint' | 'conditional_check' | 'data_transform' | 'sftp_upload' | 'email_action' | 'rename_file' | 'multipart_form_upload' | 'ai_decision' | 'imaging' | 'read_email' | 'read_barcode' | 'user_message' | 'inbox' | 'update_imaging_document';
+export type WorkflowV2StepType = 'api_call' | 'api_endpoint' | 'conditional_check' | 'data_transform' | 'sftp_upload' | 'email_action' | 'rename_file' | 'multipart_form_upload' | 'ai_decision' | 'imaging' | 'read_email' | 'read_barcode' | 'user_message' | 'inbox' | 'update_imaging_document' | 'error_handler';
 
 export interface WorkflowV2Node {
   id: string;
@@ -929,6 +929,7 @@ export interface CompanyBranding {
   loginLogoSize?: number;
   appBaseUrl?: string;
   trainingVideoLink?: string;
+  timezone?: string;
 }
 
 export interface ApiError {
