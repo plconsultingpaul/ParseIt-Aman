@@ -61,13 +61,75 @@ function getFieldValue(fieldPath: string, data: Record<string, any>): any {
   return value;
 }
 
-function formatDate(date: Date, format: string = 'YYYY-MM-DD'): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+async function fetchCompanyTimezone(supabaseUrl: string, supabaseServiceKey: string): Promise<string> {
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/company_branding?select=timezone&order=updated_at.desc&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows?.[0]?.timezone) return rows[0].timezone;
+    }
+  } catch (err) {
+    console.warn('[CompanyTimezone] Failed to fetch, defaulting to UTC:', err);
+  }
+  return 'UTC';
+}
+
+function getZonedParts(date: Date, timeZone?: string): { year: number; month: number; day: number; hours: number; minutes: number; seconds: number } {
+  if (!timeZone) {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hours: date.getHours(),
+      minutes: date.getMinutes(),
+      seconds: date.getSeconds()
+    };
+  }
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    });
+    const parts = fmt.formatToParts(date);
+    const get = (t: string) => parseInt(parts.find(p => p.type === t)?.value || '0', 10);
+    let hours = get('hour');
+    if (hours === 24) hours = 0;
+    return {
+      year: get('year'),
+      month: get('month'),
+      day: get('day'),
+      hours,
+      minutes: get('minute'),
+      seconds: get('second')
+    };
+  } catch {
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate(),
+      hours: date.getHours(),
+      minutes: date.getMinutes(),
+      seconds: date.getSeconds()
+    };
+  }
+}
+
+function formatDate(date: Date, format: string = 'YYYY-MM-DD', timeZone?: string): string {
+  const zp = getZonedParts(date, timeZone);
+  const year = zp.year;
+  const month = String(zp.month).padStart(2, '0');
+  const day = String(zp.day).padStart(2, '0');
+  const hours = String(zp.hours).padStart(2, '0');
+  const minutes = String(zp.minutes).padStart(2, '0');
+  const seconds = String(zp.seconds).padStart(2, '0');
   switch (format) {
     case 'YYYY-MM-DD': return `${year}-${month}-${day}`;
     case 'MM/DD/YYYY': return `${month}/${day}/${year}`;
@@ -97,7 +159,7 @@ function evaluateCondition(condition: FunctionConditionClause, data: Record<stri
   }
 }
 
-function evaluateFunction(functionLogic: FunctionLogic, data: Record<string, any>): any {
+function evaluateFunction(functionLogic: FunctionLogic, data: Record<string, any>, companyTimezone?: string): any {
   if (!functionLogic) return undefined;
   if ((functionLogic as any).type === 'date') {
     const logic = functionLogic as DateFunctionLogic;
@@ -112,11 +174,11 @@ function evaluateFunction(functionLogic: FunctionLogic, data: Record<string, any
     }
     const days = logic.days || 0;
     if (logic.operation === 'subtract') {
-      baseDate.setDate(baseDate.getDate() - days);
+      baseDate.setUTCDate(baseDate.getUTCDate() - days);
     } else {
-      baseDate.setDate(baseDate.getDate() + days);
+      baseDate.setUTCDate(baseDate.getUTCDate() + days);
     }
-    return formatDate(baseDate, logic.outputFormat);
+    return formatDate(baseDate, logic.outputFormat, companyTimezone);
   }
   if ((functionLogic as any).type === 'datetime_merge') {
     const logic = functionLogic as DateTimeMergeFunctionLogic;
@@ -205,6 +267,9 @@ export async function executeApiEndpoint(
   console.log('🌐 === EXECUTING API ENDPOINT STEP ===');
   const config = step.config_json || {};
   console.log('🔧 API endpoint config:', JSON.stringify(config, null, 2));
+
+  const companyTimezone = await fetchCompanyTimezone(supabaseUrl, supabaseServiceKey);
+  console.log('🕒 Company timezone for date functions:', companyTimezone);
 
   let baseUrl = '';
   let authToken = '';
@@ -365,34 +430,34 @@ export async function executeApiEndpoint(
   let requestBodyContent = config.requestBodyTemplate || '';
   const requestBodyFieldMappings = config.requestBodyFieldMappings || [];
 
+  const functionMappings = requestBodyFieldMappings.filter((m: any) => m.type === 'function' && m.functionId);
+  let functionsById: Record<string, any> = {};
+  if (functionMappings.length > 0) {
+    const functionIds = [...new Set(functionMappings.map((m: any) => m.functionId))];
+    console.log(`🔧 Loading ${functionIds.length} function definition(s) for field mappings`);
+    const funcResponse = await fetch(
+      `${supabaseUrl}/rest/v1/field_mapping_functions?id=in.(${functionIds.join(',')})&select=*`,
+      {
+        headers: {
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    if (funcResponse.ok) {
+      const funcs = await funcResponse.json();
+      for (const f of funcs) {
+        functionsById[f.id] = f;
+      }
+      console.log(`✅ Loaded ${funcs.length} function definition(s)`);
+    }
+  }
+
   if (requestBodyFieldMappings.length > 0) {
     console.log('🔧 Processing', requestBodyFieldMappings.length, 'field mappings');
     try {
       let requestBodyData = requestBodyContent ? JSON.parse(requestBodyContent) : {};
-
-      const functionMappings = requestBodyFieldMappings.filter((m: any) => m.type === 'function' && m.functionId);
-      let functionsById: Record<string, any> = {};
-      if (functionMappings.length > 0) {
-        const functionIds = [...new Set(functionMappings.map((m: any) => m.functionId))];
-        console.log(`🔧 Loading ${functionIds.length} function definition(s) for field mappings`);
-        const funcResponse = await fetch(
-          `${supabaseUrl}/rest/v1/field_mapping_functions?id=in.(${functionIds.join(',')})&select=*`,
-          {
-            headers: {
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'apikey': supabaseServiceKey,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        if (funcResponse.ok) {
-          const funcs = await funcResponse.json();
-          for (const f of funcs) {
-            functionsById[f.id] = f;
-          }
-          console.log(`✅ Loaded ${funcs.length} function definition(s)`);
-        }
-      }
 
       for (const mapping of requestBodyFieldMappings) {
         const fieldPath = mapping.fieldName;
@@ -410,7 +475,7 @@ export async function executeApiEndpoint(
           const func = functionsById[mapping.functionId];
           if (func && func.function_logic) {
             try {
-              finalValue = evaluateFunction(func.function_logic as FunctionLogic, contextData.extractedData || contextData);
+              finalValue = evaluateFunction(func.function_logic as FunctionLogic, contextData.extractedData || contextData, companyTimezone);
               console.log(`🔧 Function "${func.function_name}" -> ${fieldPath} = ${JSON.stringify(finalValue)}`);
             } catch (funcErr) {
               console.error(`❌ Error evaluating function for field "${fieldPath}":`, funcErr);
@@ -444,7 +509,7 @@ export async function executeApiEndpoint(
             } else {
               finalValue = dateValue;
             }
-          } else {
+          } else if (typeof finalValue !== 'object') {
             finalValue = String(finalValue);
           }
 
@@ -477,12 +542,230 @@ export async function executeApiEndpoint(
     });
   }
 
-  if (config.wrapBodyInArray && requestBodyContent?.trim()) {
+  const _collectField = String(config.collectRowsIntoField || '').trim();
+  if (_collectField && requestBodyContent?.trim()) {
+    const arraySourcePath = String(config.arraySourcePath || '').trim().replace(/^\{\{|\}\}$/g, '');
+    let sourceArray: any[] | null = null;
+    if (arraySourcePath) {
+      const resolved = getValueByPath(contextData, arraySourcePath);
+      if (Array.isArray(resolved)) sourceArray = resolved;
+    }
+    if (sourceArray) {
+      let baseBody: any;
+      try {
+        baseBody = JSON.parse(requestBodyContent);
+      } catch (e) {
+        console.error('[collectRowsIntoField] base body did not parse as JSON:', e);
+        baseBody = {};
+      }
+      const rowMappings = requestBodyFieldMappings.filter((m: any) =>
+        typeof m.fieldName === 'string' && (m.fieldName === _collectField || m.fieldName.startsWith(_collectField + '.'))
+      );
+      const rowObjects: any[] = [];
+      for (let rowIdx = 0; rowIdx < sourceArray.length; rowIdx++) {
+        const row = sourceArray[rowIdx] || {};
+        const rowLookup = (path: string) => {
+          const trimmed = path.trim();
+          if (row && typeof row === 'object' && trimmed in row) return (row as any)[trimmed];
+          return getValueByPath(contextData, trimmed);
+        };
+        const rowObj: any = {};
+        for (const mapping of rowMappings) {
+          const fullPath = mapping.fieldName;
+          const relPath = fullPath === _collectField ? '' : fullPath.slice(_collectField.length + 1);
+          const mappingType = mapping.type;
+          const mappingValue = mapping.value;
+          const dataType = mapping.dataType || 'string';
+          let finalValue;
+          if (mappingType === 'hardcoded') {
+            finalValue = mappingValue;
+          } else if (mappingType === 'variable') {
+            const variableName = String(mappingValue).replace(/^\{\{|\}\}$/g, '');
+            finalValue = rowLookup(variableName);
+            console.log(`[collectRowsIntoField] row=${rowIdx} field=${fullPath} var=${variableName} resolved=${JSON.stringify(finalValue)}`);
+          } else if (mappingType === 'function' && mapping.functionId) {
+            const func = functionsById[mapping.functionId];
+            if (func?.function_logic) {
+              try {
+                const evalData = { ...(contextData.extractedData || {}), ...row };
+                finalValue = evaluateFunction(func.function_logic as FunctionLogic, evalData, companyTimezone);
+              } catch (funcErr) {
+                console.error(`[collectRowsIntoField] function error row=${rowIdx} field=${fullPath}:`, funcErr);
+                continue;
+              }
+            } else {
+              continue;
+            }
+          } else {
+            continue;
+          }
+          if (finalValue === undefined || finalValue === null) continue;
+          if (dataType === 'integer') finalValue = parseInt(String(finalValue));
+          else if (dataType === 'number') finalValue = parseFloat(String(finalValue));
+          else if (dataType === 'boolean') finalValue = String(finalValue).toLowerCase() === 'true';
+          else if (dataType === 'date') {
+            const dv = String(finalValue);
+            const m = dv.match(/^(\d{4}-\d{2}-\d{2})/);
+            finalValue = m ? m[1] : dv;
+          } else if (dataType === 'datetime') {
+            const dv = String(finalValue);
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dv)) finalValue = `${dv}:00`;
+            else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dv)) finalValue = dv;
+            else if (/^\d{4}-\d{2}-\d{2}$/.test(dv)) finalValue = `${dv}T00:00:00`;
+            else finalValue = dv;
+          } else if (typeof finalValue !== 'object') {
+            finalValue = String(finalValue);
+          }
+          if (!relPath) continue;
+          const parts = relPath.split('.');
+          let cur = rowObj;
+          for (let i = 0; i < parts.length - 1; i++) {
+            const p = parts[i];
+            if (!cur[p] || typeof cur[p] !== 'object') cur[p] = {};
+            cur = cur[p];
+          }
+          cur[parts[parts.length - 1]] = finalValue;
+        }
+        rowObjects.push(rowObj);
+      }
+      const targetParts = _collectField.split('.');
+      let target = baseBody;
+      for (let i = 0; i < targetParts.length - 1; i++) {
+        const p = targetParts[i];
+        if (!target[p] || typeof target[p] !== 'object') target[p] = {};
+        target = target[p];
+      }
+      target[targetParts[targetParts.length - 1]] = rowObjects;
+      requestBodyContent = JSON.stringify(baseBody);
+      console.log(`[collectRowsIntoField] built single body with ${rowObjects.length} row(s) into "${_collectField}"`);
+    } else {
+      console.warn(`[collectRowsIntoField] arraySourcePath="${arraySourcePath}" did not resolve to an array; skipping collect mode`);
+    }
+  } else if (config.wrapBodyInArray && requestBodyContent?.trim()) {
+    const arraySourcePath = String(config.arraySourcePath || '').trim().replace(/^\{\{|\}\}$/g, '');
+    let sourceArray: any[] | null = null;
+    if (arraySourcePath) {
+      const v = getValueByPath(contextData, arraySourcePath);
+      if (Array.isArray(v)) sourceArray = v;
+    }
+
     try {
-      const parsedBody = JSON.parse(requestBodyContent);
-      if (!Array.isArray(parsedBody)) {
-        requestBodyContent = JSON.stringify([parsedBody]);
-        console.log('📦 Wrapped request body in array');
+      if (sourceArray && sourceArray.length > 0) {
+        console.log(`📦 Building per-row array bodies from "${arraySourcePath}" (${sourceArray.length} row(s))`);
+        const baseTemplate = config.requestBodyTemplate || '{}';
+        const perRowBodies: any[] = [];
+
+        for (const row of sourceArray) {
+          let rowContent = baseTemplate.replace(/\{\{([^}]+)\}\}/g, (_m: string, p: string) => {
+            const key = p.trim();
+            let v = getValueByPath(row, key);
+            if (v === undefined || v === null) v = getValueByPath(contextData, key);
+            if (v !== undefined && v !== null) {
+              return typeof v === 'object' ? JSON.stringify(v) : String(v);
+            }
+            return '';
+          });
+          let rowBody: any;
+          try {
+            rowBody = rowContent.trim() ? JSON.parse(rowContent) : {};
+          } catch {
+            rowBody = {};
+          }
+
+          for (const mapping of requestBodyFieldMappings) {
+            const fieldPath = mapping.fieldName;
+            const mappingType = mapping.type;
+            const mappingValue = mapping.value;
+            const dataType = mapping.dataType || 'string';
+
+            let finalValue: any;
+            if (mappingType === 'hardcoded') {
+              finalValue = mappingValue;
+            } else if (mappingType === 'variable') {
+              const variableName = String(mappingValue || '').replace(/^\{\{|\}\}$/g, '');
+              finalValue = getValueByPath(row, variableName);
+              if (finalValue === undefined || finalValue === null) {
+                finalValue = getValueByPath(contextData, variableName);
+              }
+            } else if (mappingType === 'function' && mapping.functionId) {
+              const func = functionsById[mapping.functionId];
+              if (func && func.function_logic) {
+                try {
+                  const fnScope = { ...(contextData.extractedData || contextData), ...row };
+                  finalValue = evaluateFunction(func.function_logic as FunctionLogic, fnScope, companyTimezone);
+                } catch (funcErr) {
+                  console.error(`❌ Error evaluating function for field "${fieldPath}" (row):`, funcErr);
+                  continue;
+                }
+              } else {
+                continue;
+              }
+            } else {
+              continue;
+            }
+
+            if (finalValue !== undefined && finalValue !== null) {
+              if (dataType === 'integer') {
+                finalValue = parseInt(String(finalValue));
+              } else if (dataType === 'number') {
+                finalValue = parseFloat(String(finalValue));
+              } else if (dataType === 'boolean') {
+                finalValue = String(finalValue).toLowerCase() === 'true';
+              } else if (dataType === 'date') {
+                const s = String(finalValue);
+                const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+                finalValue = m ? m[1] : s;
+              } else if (dataType === 'datetime') {
+                const s = String(finalValue);
+                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) {
+                  finalValue = `${s}:00`;
+                } else if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+                  finalValue = `${s}T00:00:00`;
+                } else {
+                  finalValue = s;
+                }
+              } else if (typeof finalValue !== 'object') {
+                finalValue = String(finalValue);
+              }
+
+              const parts = String(fieldPath).split('.');
+              let cur = rowBody;
+              for (let i = 0; i < parts.length - 1; i++) {
+                if (!cur[parts[i]] || typeof cur[parts[i]] !== 'object') cur[parts[i]] = {};
+                cur = cur[parts[i]];
+              }
+              cur[parts[parts.length - 1]] = finalValue;
+            }
+          }
+
+          perRowBodies.push(rowBody);
+        }
+
+        requestBodyContent = JSON.stringify(perRowBodies);
+        console.log(`📦 Built request body array with ${perRowBodies.length} row(s)`);
+      } else {
+        const parsedBody = JSON.parse(requestBodyContent);
+        if (!Array.isArray(parsedBody)) {
+          let explodeKey: string | null = null;
+          if (parsedBody && typeof parsedBody === 'object') {
+            for (const k of Object.keys(parsedBody)) {
+              const v = (parsedBody as any)[k];
+              if (Array.isArray(v) && v.length > 0 && v.every((r: any) => r !== null && typeof r === 'object' && !Array.isArray(r))) {
+                explodeKey = k;
+                break;
+              }
+            }
+          }
+          if (explodeKey) {
+            const rows = (parsedBody as any)[explodeKey] as any[];
+            const exploded = rows.map((row) => ({ ...(parsedBody as any), [explodeKey!]: row }));
+            requestBodyContent = JSON.stringify(exploded);
+            console.log(`📦 Exploded request body by "${explodeKey}" into ${exploded.length} row(s)`);
+          } else {
+            requestBodyContent = JSON.stringify([parsedBody]);
+            console.log('📦 Wrapped request body in array');
+          }
+        }
       }
     } catch (e) {
       console.warn('⚠️ Could not wrap body in array - invalid JSON:', e);
@@ -498,6 +781,8 @@ export async function executeApiEndpoint(
   console.log('  - API Path:', apiPath);
   console.log('  - Query String:', queryString);
 
+  console.log('[ApiEndpoint] final requestBody (length ' + (requestBodyContent?.length || 0) + '):', requestBodyContent);
+
   const fetchOptions: any = { method: httpMethod, headers };
   if (httpMethod.toUpperCase() !== 'GET' && requestBodyContent && requestBodyContent.trim() !== '') {
     fetchOptions.body = requestBodyContent;
@@ -510,7 +795,7 @@ export async function executeApiEndpoint(
   } catch (fetchError: any) {
     console.error('❌ fetch() threw an error:', fetchError.message);
     const error: any = new Error(`${fetchError.message}`);
-    error.outputData = { requestAttempted: apiRequestDetails };
+    error.outputData = { requestAttempted: apiRequestDetails, requestBody: requestBodyContent };
     error.resolvedRequestDetails = apiRequestDetails;
     error.resolvedRequestBody = requestBodyContent;
     throw error;
@@ -523,6 +808,7 @@ export async function executeApiEndpoint(
     const error: any = new Error(`API endpoint call failed with status ${apiResponse.status}: ${errorText}`);
     error.outputData = {
       requestAttempted: apiRequestDetails,
+      requestBody: requestBodyContent,
       responseStatus: apiResponse.status,
       error: errorText
     };
